@@ -34,6 +34,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { blobToWav } from "@/lib/audio/wav";
+import { transcribeDiarized } from "@/lib/audio/transcribe-client";
+import { getDefaultKnownSpeakers } from "@/lib/audio/known-speakers";
+import { useAudioRecorder } from "@/lib/hooks/useAudioRecorder";
 import { cn } from "@/lib/utils";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
@@ -1019,60 +1023,6 @@ export const PromptInputSubmit = ({
   );
 };
 
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
-  onresult:
-    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any)
-    | null;
-  onerror:
-    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any)
-    | null;
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-type SpeechRecognitionResultList = {
-  readonly length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-};
-
-type SpeechRecognitionResult = {
-  readonly length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-  isFinal: boolean;
-};
-
-type SpeechRecognitionAlternative = {
-  transcript: string;
-  confidence: number;
-};
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: {
-      new (): SpeechRecognition;
-    };
-    webkitSpeechRecognition: {
-      new (): SpeechRecognition;
-    };
-  }
-}
-
 export type PromptInputSpeechButtonProps = ComponentProps<
   typeof PromptInputButton
 > & {
@@ -1086,96 +1036,148 @@ export const PromptInputSpeechButton = ({
   onTranscriptionChange,
   ...props
 }: PromptInputSpeechButtonProps) => {
-  const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(
-    null
+  const {
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    isRecording,
+    error: micError,
+  } = useAudioRecorder();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [saveWavCopy, setSaveWavCopy] = useState(false);
+  const [lastWavUrl, setLastWavUrl] = useState<string | null>(null);
+  const [errorText, setErrorText] = useState<string | null>(null);
+
+  useEffect(
+    () => () => {
+      cancelRecording();
+      if (lastWavUrl) {
+        URL.revokeObjectURL(lastWavUrl);
+      }
+    },
+    [cancelRecording, lastWavUrl]
   );
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      ("SpeechRecognition" in window || "webkitSpeechRecognition" in window)
-    ) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      const speechRecognition = new SpeechRecognition();
-
-      speechRecognition.continuous = true;
-      speechRecognition.interimResults = true;
-      speechRecognition.lang = "en-US";
-
-      speechRecognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      speechRecognition.onend = () => {
-        setIsListening(false);
-      };
-
-      speechRecognition.onresult = (event) => {
-        let finalTranscript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          if (result.isFinal) {
-            finalTranscript += result[0]?.transcript ?? "";
-          }
-        }
-
-        if (finalTranscript && textareaRef?.current) {
-          const textarea = textareaRef.current;
-          const currentValue = textarea.value;
-          const newValue =
-            currentValue + (currentValue ? " " : "") + finalTranscript;
-
-          textarea.value = newValue;
-          textarea.dispatchEvent(new Event("input", { bubbles: true }));
-          onTranscriptionChange?.(newValue);
-        }
-      };
-
-      speechRecognition.onerror = (event) => {
-        console.error("Speech recognition error:", event.error);
-        setIsListening(false);
-      };
-
-      recognitionRef.current = speechRecognition;
-      setRecognition(speechRecognition);
+    if (micError) {
+      setErrorText(micError);
     }
+  }, [micError]);
 
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+  const handleToggleRecording = useCallback(async () => {
+    if (isProcessing) return;
+
+    if (!isRecording) {
+      setErrorText(null);
+      try {
+        await startRecording();
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Unable to access microphone.";
+        setErrorText(message);
       }
-    };
-  }, [textareaRef, onTranscriptionChange]);
-
-  const toggleListening = useCallback(() => {
-    if (!recognition) {
       return;
     }
 
-    if (isListening) {
-      recognition.stop();
-    } else {
-      recognition.start();
+    setIsProcessing(true);
+    try {
+      const rawBlob = await stopRecording();
+      const wavBlob = await blobToWav(rawBlob);
+
+      if (saveWavCopy) {
+        if (lastWavUrl) URL.revokeObjectURL(lastWavUrl);
+        setLastWavUrl(URL.createObjectURL(wavBlob));
+      }
+
+      const knownSpeakers = await getDefaultKnownSpeakers();
+
+      const transcript = await transcribeDiarized(wavBlob, {
+        filename: "prompt-input.wav",
+        knownSpeakerNames: knownSpeakers?.names,
+        knownSpeakerReferences: knownSpeakers?.references,
+      });
+
+      const textToInsert = transcript.diarizedText || transcript.text;
+
+      if (textToInsert && textareaRef?.current) {
+        const textarea = textareaRef.current;
+        const currentValue = textarea.value.trim();
+        const newValue = currentValue
+          ? `${currentValue}\n${textToInsert}`
+          : textToInsert;
+
+        textarea.value = newValue;
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        onTranscriptionChange?.(newValue);
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Failed to transcribe audio.";
+      setErrorText(message);
+    } finally {
+      setIsProcessing(false);
     }
-  }, [recognition, isListening]);
+  }, [
+    isProcessing,
+    isRecording,
+    startRecording,
+    stopRecording,
+    saveWavCopy,
+    textareaRef,
+    onTranscriptionChange,
+    lastWavUrl,
+  ]);
+
+  const statusIcon = isRecording ? (
+    <SquareIcon className="size-4" />
+  ) : isProcessing ? (
+    <Loader2Icon className="size-4 animate-spin" />
+  ) : (
+    <MicIcon className="size-4" />
+  );
 
   return (
-    <PromptInputButton
-      className={cn(
-        "relative transition-all duration-200",
-        isListening && "animate-pulse bg-accent text-accent-foreground",
-        className
+    <div className="flex items-center gap-1">
+      <PromptInputButton
+        className={cn(
+          "relative transition-all duration-200",
+          (isRecording || isProcessing) &&
+            "bg-accent text-accent-foreground shadow-inner",
+          className
+        )}
+        disabled={isProcessing}
+        onClick={handleToggleRecording}
+        {...props}
+      >
+        {statusIcon}
+        {saveWavCopy && (
+          <span className="absolute right-1 top-1 text-[9px] font-semibold">
+            WAV
+          </span>
+        )}
+      </PromptInputButton>
+      <PromptInputButton
+        size="icon-xs"
+        variant={saveWavCopy ? "default" : "ghost"}
+        onClick={() => setSaveWavCopy((prev) => !prev)}
+        title="Toggle to keep a WAV copy and upload it to the server"
+        aria-pressed={saveWavCopy}
+      >
+        WAV
+      </PromptInputButton>
+      {saveWavCopy && lastWavUrl && (
+        <a
+          className="text-[10px] text-muted-foreground underline"
+          href={lastWavUrl}
+          download="transcription.wav"
+        >
+          Save copy
+        </a>
       )}
-      disabled={!recognition}
-      onClick={toggleListening}
-      {...props}
-    >
-      <MicIcon className="size-4" />
-    </PromptInputButton>
+      {errorText && (
+        <span className="text-[10px] text-red-500">{errorText}</span>
+      )}
+    </div>
   );
 };
 

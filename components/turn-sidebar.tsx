@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Square } from 'lucide-react';
+import { blobToWav } from '@/lib/audio/wav';
+import { transcribeDiarized } from '@/lib/audio/transcribe-client';
+import { getDefaultKnownSpeakers } from '@/lib/audio/known-speakers';
+import { useAudioRecorder } from '@/lib/hooks/useAudioRecorder';
 
 type VideoDevice = Pick<MediaDeviceInfo, 'deviceId' | 'label'>;
 
@@ -10,35 +14,6 @@ export interface CapturedItem {
   timestamp: number;
 }
 
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message?: string;
-}
-
-interface SpeechRecognitionEvent {
-  results: {
-    length: number;
-    [index: number]: {
-      isFinal: boolean;
-      [index: number]: {
-        transcript: string;
-      };
-    };
-  };
-  resultIndex: number;
-}
-
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  onresult: (event: SpeechRecognitionEvent) => void;
-  onerror: (event: SpeechRecognitionErrorEvent) => void;
-  onend: () => void;
-}
-
 interface TurnSidebarProps {
   onCapture?: (item: CapturedItem) => void;
 }
@@ -46,8 +21,13 @@ interface TurnSidebarProps {
 export function TurnSidebar({ onCapture }: TurnSidebarProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const isSessionActiveRef = useRef(false);
+  const {
+    startRecording,
+    stopRecording,
+    cancelRecording,
+    isRecording,
+    error: micError,
+  } = useAudioRecorder();
 
   const [devices, setDevices] = useState<VideoDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
@@ -55,63 +35,19 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
 
   // State for transcription
   const [transcript, setTranscript] = useState('');
-  const [fullTranscript, setFullTranscript] = useState('');
-  const [flushedLength, setFlushedLength] = useState(0);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [saveWavCopy, setSaveWavCopy] = useState(false);
+  const [lastWavUrl, setLastWavUrl] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
 
   // State for captured content
   const [isSessionActive, setIsSessionActive] = useState(false);
 
-  // Update the ref when state changes
   useEffect(() => {
-    isSessionActiveRef.current = isSessionActive;
-  }, [isSessionActive]);
-
-  useEffect(() => {
-    // Initialize Speech Recognition if available
-    if (typeof window !== 'undefined') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SpeechRecognitionConstructor = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognitionConstructor) {
-        const recognition = new SpeechRecognitionConstructor();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          let allText = '';
-          for (let i = 0; i < event.results.length; i++) {
-            allText += event.results[i][0].transcript;
-          }
-          setFullTranscript(allText);
-        };
-
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.error('Speech recognition error', event.error);
-          if (event.error === 'not-allowed') {
-             isSessionActiveRef.current = false;
-             setIsSessionActive(false);
-          }
-        };
-
-        recognition.onend = () => {
-            if (isSessionActiveRef.current) {
-                try {
-                    recognition.start();
-                } catch (e) {
-                    console.error("Failed to restart recognition", e);
-                }
-            }
-        };
-
-        recognitionRef.current = recognition;
-      }
+    if (micError) {
+      setAudioError(micError);
     }
-  }, []);
-
-  // Calculate the visible (unflushed) transcript
-  useEffect(() => {
-    setTranscript(fullTranscript.slice(flushedLength));
-  }, [fullTranscript, flushedLength]);
+  }, [micError]);
 
   useEffect(() => {
     const loadDevices = async () => {
@@ -136,6 +72,12 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
   const startSession = useCallback(async () => {
     try {
       setIsSessionActive(true);
+      setAudioError(null);
+      cancelRecording();
+      if (lastWavUrl) {
+        URL.revokeObjectURL(lastWavUrl);
+        setLastWavUrl(null);
+      }
 
       stream?.getTracks().forEach((track) => track.stop());
       const nextStream = await navigator.mediaDevices.getUserMedia({
@@ -149,37 +91,23 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
         await videoRef.current.play();
       }
 
-      if (recognitionRef.current) {
-        setFullTranscript('');
-        setFlushedLength(0);
-        setTranscript('');
-
-        try {
-             recognitionRef.current.start();
-        } catch (e: unknown) {
-             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((e as any).name !== 'InvalidStateError' && (e as any).message?.indexOf('already started') === -1) {
-                 console.error("Error starting recognition", e);
-            }
-        }
-      }
-
+      setTranscript('');
+      await startRecording();
     } catch (error) {
       console.error('Failed to start session', error);
       setIsSessionActive(false);
+      setAudioError('Unable to start camera or microphone.');
     }
-  }, [selectedDeviceId, stream]);
+  }, [selectedDeviceId, stream, startRecording, cancelRecording, lastWavUrl]);
 
   const stopSession = useCallback(() => {
       setIsSessionActive(false);
       stream?.getTracks().forEach((track) => track.stop());
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-  }, [stream]);
+      cancelRecording();
+  }, [stream, cancelRecording]);
 
-  const captureAndFlush = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const captureAndFlush = useCallback(async () => {
+    if (!videoRef.current || !canvasRef.current || isTranscribing) return;
 
     // Capture Photo
     const video = videoRef.current;
@@ -194,45 +122,85 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     const photoUrl = canvas.toDataURL('image/jpeg', 0.92);
 
-    // Capture Transcript
-    const currentTranscript = fullTranscript.slice(flushedLength);
+    setAudioError(null);
+    setIsTranscribing(true);
+    try {
+      const rawAudio = await stopRecording();
+      const wavBlob = await blobToWav(rawAudio);
 
-    const item: CapturedItem = {
-      image: photoUrl,
-      transcript: currentTranscript,
-      timestamp: Date.now(),
-    };
+      if (saveWavCopy) {
+        if (lastWavUrl) URL.revokeObjectURL(lastWavUrl);
+        setLastWavUrl(URL.createObjectURL(wavBlob));
+      }
 
-    if (onCapture) {
-      onCapture(item);
+      const knownSpeakers = await getDefaultKnownSpeakers();
+      const result = await transcribeDiarized(wavBlob, {
+        filename: 'turn.wav',
+        knownSpeakerNames: knownSpeakers?.names,
+        knownSpeakerReferences: knownSpeakers?.references,
+      });
+
+      const currentTranscript =
+        result.diarizedText || result.text || '(No speech detected)';
+
+      const item: CapturedItem = {
+        image: photoUrl,
+        transcript: currentTranscript,
+        timestamp: Date.now(),
+      };
+
+      if (onCapture) {
+        onCapture(item);
+      }
+
+      setTranscript(currentTranscript);
+    } catch (error) {
+      console.error('Failed to transcribe turn audio', error);
+      setAudioError('Failed to transcribe audio.');
+    } finally {
+      setIsTranscribing(false);
+      if (isSessionActive) {
+        try {
+          await startRecording();
+        } catch (err) {
+          console.error('Failed to restart recording', err);
+          setAudioError('Failed to restart microphone after capture.');
+        }
+      }
     }
-
-    setFlushedLength(fullTranscript.length);
-  }, [fullTranscript, flushedLength, onCapture]);
+  }, [
+    isTranscribing,
+    saveWavCopy,
+    lastWavUrl,
+    stopRecording,
+    onCapture,
+    isSessionActive,
+    startRecording,
+  ]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.code === 'Space') {
         event.preventDefault();
-        if (isSessionActive) {
-            captureAndFlush();
+        if (isSessionActive && !isTranscribing) {
+          captureAndFlush();
         }
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [captureAndFlush, isSessionActive]);
+  }, [captureAndFlush, isSessionActive, isTranscribing]);
 
   useEffect(() => {
     return () => {
       stream?.getTracks().forEach((track) => track.stop());
-      isSessionActiveRef.current = false;
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      cancelRecording();
+      if (lastWavUrl) {
+        URL.revokeObjectURL(lastWavUrl);
       }
     };
-  }, [stream]);
+  }, [stream, cancelRecording, lastWavUrl]);
 
   return (
     <div className="flex flex-col h-full border-l border-gray-200 bg-[#F3F4F6]">
@@ -274,8 +242,19 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
             <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col min-h-0">
                  <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">Live Transcript</h4>
                  <div className="flex-1 overflow-y-auto text-sm leading-relaxed text-gray-700">
-                    {transcript || <span className="text-gray-400 italic">Listening for speech...</span>}
+                    {isTranscribing
+                      ? 'Transcribing...'
+                      : isRecording
+                        ? 'Recording audio...'
+                        : transcript || (
+                            <span className="text-gray-400 italic">
+                              No transcript yet. Press Play Turn to capture and transcribe.
+                            </span>
+                          )}
                  </div>
+                 {audioError && (
+                   <p className="text-xs text-red-500 mt-2">{audioError}</p>
+                 )}
             </div>
 
             {/* Play Turn Button */}
@@ -295,12 +274,36 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
                         variant="default"
                         className="w-full h-14 text-lg font-semibold rounded-xl shadow-blue-200 shadow-lg bg-blue-600 hover:bg-blue-700 text-white transition-all border-t border-white/20"
                         onClick={captureAndFlush}
+                        disabled={isTranscribing}
                     >
                         <div className="flex flex-col items-center leading-none gap-1">
-                            <span>Play Turn</span>
+                            <span>{isTranscribing ? 'Transcribing...' : 'Play Turn'}</span>
                             <span className="text-[10px] font-normal opacity-80 uppercase tracking-wider">Spacebar</span>
                         </div>
                      </Button>
+                 )}
+
+                 {isSessionActive && (
+                     <div className="mt-3 flex items-center justify-between gap-2 text-xs text-gray-500">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={saveWavCopy}
+                            onChange={(event) => setSaveWavCopy(event.target.checked)}
+                          />
+                          Save WAV copy before upload
+                        </label>
+                        {saveWavCopy && lastWavUrl && (
+                          <a
+                            className="text-blue-600 underline"
+                            href={lastWavUrl}
+                            download="turn-transcription.wav"
+                          >
+                            Download WAV
+                          </a>
+                        )}
+                     </div>
                  )}
 
                  {isSessionActive && (

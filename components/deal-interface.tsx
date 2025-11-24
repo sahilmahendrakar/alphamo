@@ -40,7 +40,7 @@ type AddPropertyInput = { playerName: string; propertyName: string; colorGroup: 
 type AddPropertyOutput = { success: boolean; message: string; property?: { name: string; colorGroup: string; houses: number; hotels: number } };
 type RemovePropertyInput = { playerName: string; propertyName: string };
 type RemovePropertyOutput = { success: boolean; message: string; property?: { name: string; colorGroup: string; houses: number; hotels: number } };
-type GetMemoryBankOutput = { success: boolean; message?: string; memoryBank?: any; summary?: string };
+type GetMemoryBankOutput = { success: boolean; message?: string; memoryBank?: unknown; summary?: string };
 
 type MonopolyToolUIPart = ToolUIPart<{
   sum: { input: SumToolInput; output: SumToolOutput };
@@ -60,8 +60,12 @@ export function DealInterface() {
     }
   };
 
-  const renderToolPart = (part: any, messageId: string, index: number) => {
-    const toolPart = part as MonopolyToolUIPart;
+  const renderToolPart = (
+    part: MonopolyToolUIPart,
+    messageId: string,
+    index: number
+  ) => {
+    const toolPart = part;
 
     if (part.type.startsWith('tool-')) {
       return (
@@ -105,7 +109,11 @@ export function DealInterface() {
                             );
                             default:
                             if (part.type.startsWith('tool-')) {
-                                return renderToolPart(part, message.id, i);
+                                return renderToolPart(
+                                  part as MonopolyToolUIPart,
+                                  message.id,
+                                  i
+                                );
                             }
                             return null;
                         }
@@ -136,4 +144,3 @@ export function DealInterface() {
     </div>
   );
 }
-
