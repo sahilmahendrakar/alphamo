@@ -6,20 +6,21 @@ import { AVAILABLE_TOKENS, Token } from '@/lib/memory/types';
 type UpdatePlayerResult = {
   success: boolean;
   message: string;
-  player?: { name: string; token?: Token | null; inJail?: boolean };
+  player?: { name: string; token?: Token | null; inJail?: boolean; position?: number };
 };
 
 export const updatePlayer = tool({
-  description: 'Update a player\'s token or jail status in the Monopoly game',
+  description: 'Update a player\'s token, jail status, or position in the Monopoly game. Note: For position updates that involve movement and passing Go, use updatePlayerPosition instead.',
   inputSchema: z.object({
     playerName: z.string().describe('Name of the player to update'),
     token: z.enum(AVAILABLE_TOKENS).optional().describe('Optional game token to assign to the player (e.g., Dog, Top Hat, Thimble, Boot, Battleship, Iron, Race Car, Wheelbarrow, Cat, Penguin, Rubber Ducky, T-Rex, Bag of Gold, Cannon)'),
     inJail: z.boolean().optional().describe('Whether the player is in jail (true) or not (false)'),
+    position: z.number().min(0).max(39).optional().describe('Board position (0-39). Use updatePlayerPosition for normal movement.'),
   }).refine(
-    (data) => data.token !== undefined || data.inJail !== undefined,
-    { message: 'At least one of token or inJail must be provided' }
+    (data) => data.token !== undefined || data.inJail !== undefined || data.position !== undefined,
+    { message: 'At least one of token, inJail, or position must be provided' }
   ),
-  execute: async ({ playerName, token, inJail }) => {
+  execute: async ({ playerName, token, inJail, position }) => {
     try {
       if (!playerName || playerName.trim() === '') {
         return {
@@ -71,6 +72,12 @@ export const updatePlayer = tool({
           updates.push(`${inJail ? 'sent to jail' : 'released from jail'} (was ${oldJailStatus ? 'in jail' : 'not in jail'})`);
         }
 
+        if (position !== undefined) {
+          const oldPosition = player.position;
+          player.position = position;
+          updates.push(`position changed from ${oldPosition} to ${position}`);
+        }
+
         return {
           memoryBank,
           result: {
@@ -80,6 +87,7 @@ export const updatePlayer = tool({
               name: player.name, 
               token: player.token,
               inJail: player.inJail,
+              position: player.position,
             },
           },
         };

@@ -8,6 +8,9 @@ import { addProperty } from '@/lib/tools/add-property';
 import { removeProperty } from '@/lib/tools/remove-property';
 import { updateProperty } from '@/lib/tools/update-property';
 import { getMemoryBank } from '@/lib/tools/get-memory-bank';
+import { rollDice } from '@/lib/tools/roll-dice';
+import { updatePlayerPosition } from '@/lib/tools/update-player-position';
+import { getBoardSpace } from '@/lib/tools/get-board-space';
 import { buildSystemPrompt } from '@/lib/prompts/alphamo';
 
 export async function createAlphamoAgent() {
@@ -25,6 +28,9 @@ export async function createAlphamoAgent() {
       removeProperty,
       updateProperty,
       getMemoryBank,
+      rollDice,
+      updatePlayerPosition,
+      getBoardSpace,
     },
     stopWhen: stepCountIs(20),
   });

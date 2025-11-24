@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Square } from 'lucide-react';
+import { Play, Square, Camera, CameraOff } from 'lucide-react';
 
 type VideoDevice = Pick<MediaDeviceInfo, 'deviceId' | 'label'>;
 
@@ -52,6 +52,7 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
   const [devices, setDevices] = useState<VideoDevice[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>();
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
 
   // State for transcription
   const [transcript, setTranscript] = useState('');
@@ -179,22 +180,24 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
   }, [stream]);
 
   const captureAndFlush = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current) return;
+    let photoUrl = '';
 
-    // Capture Photo
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (video.videoWidth === 0) return;
+    if (isCameraEnabled && videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      if (video.videoWidth > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        
+        if (context) {
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          photoUrl = canvas.toDataURL('image/jpeg', 0.92);
+        }
+      }
+    }
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const photoUrl = canvas.toDataURL('image/jpeg', 0.92);
-
-    // Capture Transcript
     const currentTranscript = fullTranscript.slice(flushedLength);
 
     const item: CapturedItem = {
@@ -208,7 +211,7 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
     }
 
     setFlushedLength(fullTranscript.length);
-  }, [fullTranscript, flushedLength, onCapture]);
+  }, [fullTranscript, flushedLength, onCapture, isCameraEnabled]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -237,20 +240,34 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
   return (
     <div className="flex flex-col h-full border-l border-gray-200 bg-[#F3F4F6]">
 
-       {/* Camera Selection - Minimal */}
-       <div className="p-3 shrink-0">
-            <select
-                className="bg-transparent border-none text-xs text-gray-400 focus:outline-none w-full cursor-pointer hover:text-gray-600 transition-colors"
-                value={selectedDeviceId}
-                onChange={(event) => setSelectedDeviceId(event.target.value)}
-            >
-                <option value="">Default Camera</option>
-                {devices.map((device) => (
-                    <option key={device.deviceId} value={device.deviceId}>
-                    {device.label}
-                    </option>
-                ))}
-            </select>
+       {/* Camera Controls */}
+       <div className="p-3 shrink-0 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+                <select
+                    className="bg-transparent border-none text-xs text-gray-400 focus:outline-none flex-1 cursor-pointer hover:text-gray-600 transition-colors"
+                    value={selectedDeviceId}
+                    onChange={(event) => setSelectedDeviceId(event.target.value)}
+                    disabled={!isCameraEnabled}
+                >
+                    <option value="">Default Camera</option>
+                    {devices.map((device) => (
+                        <option key={device.deviceId} value={device.deviceId}>
+                        {device.label}
+                        </option>
+                    ))}
+                </select>
+                <button
+                    onClick={() => setIsCameraEnabled(!isCameraEnabled)}
+                    className={`p-1.5 rounded-md transition-colors ${
+                        isCameraEnabled 
+                            ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' 
+                            : 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                    }`}
+                    title={isCameraEnabled ? "Disable camera" : "Enable camera"}
+                >
+                    {isCameraEnabled ? <Camera className="w-4 h-4" /> : <CameraOff className="w-4 h-4" />}
+                </button>
+            </div>
        </div>
 
        {/* Content Area */}
@@ -258,12 +275,19 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
 
             {/* Live Monitor - Smaller Fixed Height */}
             <div className="h-48 bg-black rounded-xl overflow-hidden relative shadow-sm ring-1 ring-black/5 shrink-0">
-                {isSessionActive ? (
+                {!isCameraEnabled ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 gap-2 bg-gray-100">
+                        <div className="p-3 rounded-full bg-gray-200">
+                            <CameraOff className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <span className="text-sm font-medium">Camera Disabled</span>
+                    </div>
+                ) : isSessionActive ? (
                     <video ref={videoRef} className="size-full object-cover" playsInline muted />
                 ) : (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 gap-2 bg-gray-100">
                         <div className="p-3 rounded-full bg-gray-200">
-                             <Square className="w-6 h-6 text-gray-400" />
+                            <Square className="w-6 h-6 text-gray-400" />
                         </div>
                         <span className="text-sm font-medium">Camera Off</span>
                     </div>

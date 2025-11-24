@@ -47,19 +47,25 @@ export default function Home() {
   }, []);
 
   const handleCapture = (item: CapturedItem) => {
-    const mimeMatch = item.image.match(/^data:(.*?);/);
-    const mediaType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    const files: FileUIPart[] = [];
     
-    const file: FileUIPart = {
-      type: 'file',
-      url: item.image,
-      mediaType,
-      filename: `board-${item.timestamp}.jpg`,
-    };
+    if (item.image) {
+      const mimeMatch = item.image.match(/^data:(.*?);/);
+      const mediaType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      
+      const file: FileUIPart = {
+        type: 'file',
+        url: item.image,
+        mediaType,
+        filename: `board-${item.timestamp}.jpg`,
+      };
+      
+      files.push(file);
+    }
     
     sendMessage({
       text: item.transcript || 'Captured board state',
-      files: [file],
+      files,
     });
   };
 

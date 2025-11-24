@@ -48,6 +48,27 @@ export interface Player {
   money: number;
   token?: Token | null;
   inJail: boolean;
+  position: number;
+}
+
+export type SpaceType = 
+  | 'go'
+  | 'property'
+  | 'railroad'
+  | 'utility'
+  | 'chance'
+  | 'community_chest'
+  | 'tax'
+  | 'jail'
+  | 'free_parking'
+  | 'go_to_jail';
+
+export interface BoardSpace {
+  position: number;
+  name: string;
+  type: SpaceType;
+  propertyName?: string;
+  taxAmount?: number;
 }
 
 export interface MemoryBank {

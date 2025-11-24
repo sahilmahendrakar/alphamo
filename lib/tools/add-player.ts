@@ -6,7 +6,7 @@ import { AVAILABLE_TOKENS, Token } from '@/lib/memory/types';
 type AddPlayerResult = {
   success: boolean;
   message: string;
-  player?: { name: string; money: number; properties: never[]; token?: Token | null };
+  player?: { name: string; money: number; properties: never[]; token?: Token | null; position: number };
 };
 
 export const addPlayer = tool({
@@ -64,6 +64,7 @@ export const addPlayer = tool({
           money: initialMoney,
           token: token || null,
           inJail: false,
+          position: 0,
         });
 
         const tokenMessage = token ? ` with token ${token}` : '';
@@ -71,8 +72,8 @@ export const addPlayer = tool({
           memoryBank,
           result: {
             success: true,
-            message: `Player "${name.trim()}" added with $${initialMoney}${tokenMessage}.`,
-            player: { name: name.trim(), money: initialMoney, properties: [], token: token || null },
+            message: `Player "${name.trim()}" added with $${initialMoney}${tokenMessage} at position 0 (Go).`,
+            player: { name: name.trim(), money: initialMoney, properties: [], token: token || null, position: 0 },
           },
         };
       });

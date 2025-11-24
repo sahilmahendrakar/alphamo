@@ -1,25 +1,60 @@
 {
   "players": [
     {
+      "name": "AlphaMo",
+      "properties": [
+        {
+          "name": "Connecticut Avenue",
+          "colorGroup": "Light Blue",
+          "houses": 0,
+          "hotels": 0,
+          "isMortgaged": false
+        }
+      ],
+      "money": 1380,
+      "token": "Race Car",
+      "inJail": false,
+      "position": 9
+    },
+    {
       "name": "Ben",
-      "properties": [],
-      "money": 200,
-      "token": "Thimble",
-      "inJail": false
+      "properties": [
+        {
+          "name": "Baltic Avenue",
+          "colorGroup": "Brown",
+          "houses": 0,
+          "hotels": 0,
+          "isMortgaged": false
+        }
+      ],
+      "money": 1440,
+      "token": "Dog",
+      "inJail": false,
+      "position": 3
     },
     {
       "name": "Vish",
-      "properties": [],
-      "money": 200,
-      "token": "Dog",
-      "inJail": false
+      "properties": [
+        {
+          "name": "Reading Railroad",
+          "colorGroup": "Railroad",
+          "houses": 0,
+          "hotels": 0,
+          "isMortgaged": false
+        }
+      ],
+      "money": 1300,
+      "token": "Thimble",
+      "inJail": false,
+      "position": 5
     },
     {
-      "name": "Sahil",
+      "name": "Sahel",
       "properties": [],
-      "money": 200,
-      "token": "Cannon",
-      "inJail": false
+      "money": 1500,
+      "token": "Top Hat",
+      "inJail": false,
+      "position": 0
     }
   ]
 }
