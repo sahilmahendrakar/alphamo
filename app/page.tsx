@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useChat } from '@ai-sdk/react';
 import { GameStateDisplay } from '@/components/game-state-display';
 import { DealInterface } from '@/components/deal-interface';
-import { TurnSidebar } from '@/components/turn-sidebar';
+import { TurnSidebar, CapturedItem } from '@/components/turn-sidebar';
+import { AlphamoChatPanel } from '@/components/alphamo-chat-panel';
 import { MemoryBank } from '@/lib/memory/types';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
@@ -13,6 +15,8 @@ export default function Home() {
   const [gameState, setGameState] = useState<MemoryBank | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { messages, sendMessage, status } = useChat();
 
   const fetchMemoryState = async () => {
     try {
@@ -41,6 +45,15 @@ export default function Home() {
     return () => clearInterval(pollInterval);
   }, []);
 
+  const handleCapture = (item: CapturedItem) => {
+    if (item.transcript.trim()) {
+      sendMessage({
+        text: item.transcript,
+        files: [],
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans overflow-hidden">
 
@@ -60,7 +73,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. Main Content Area - Split vertically */}
+      {/* 2. Main Content Area - Split into 3 columns */}
       <div className="flex-1 flex overflow-hidden">
 
           {/* Left: Game State (Flexible width) */}
@@ -85,9 +98,14 @@ export default function Home() {
              )}
           </div>
 
+          {/* Middle: Alphamo Chat Panel (Fixed width) */}
+          <div className="w-[350px] shrink-0 border-l border-gray-200 bg-white z-10">
+             <AlphamoChatPanel messages={messages} isLoading={status === 'submitted' || status === 'streaming'} />
+          </div>
+
           {/* Right: Turn Sidebar (Fixed width) */}
           <div className="w-[350px] shrink-0 border-l border-gray-200 bg-white z-10">
-             <TurnSidebar />
+             <TurnSidebar onCapture={handleCapture} />
           </div>
       </div>
 
