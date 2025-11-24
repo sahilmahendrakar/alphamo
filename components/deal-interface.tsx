@@ -82,9 +82,9 @@ export function DealInterface() {
 
   return (
     <div className="flex flex-col h-full bg-white">
-        <div className="flex-1 overflow-hidden">
-            <Conversation>
-            <ConversationContent>
+        <div className="flex-1 min-h-0 overflow-hidden">
+            <Conversation className="h-full">
+            <ConversationContent className="max-w-full">
                 {messages.length === 0 ? (
                 <ConversationEmptyState
                     icon={<MessageSquare className="size-12" />}
@@ -93,8 +93,8 @@ export function DealInterface() {
                 />
                 ) : (
                 messages.map((message) => (
-                    <Message from={message.role} key={message.id}>
-                    <MessageContent>
+                    <Message from={message.role} key={message.id} className="max-w-full">
+                    <MessageContent className="max-w-full overflow-hidden">
                         {message.parts.map((part, i) => {
                         switch (part.type) {
                             case 'text':
@@ -118,7 +118,7 @@ export function DealInterface() {
             <ConversationScrollButton />
             </Conversation>
         </div>
-        <div className="p-4 border-t border-gray-200 bg-white">
+        <div className="p-4 border-t border-gray-200 bg-white shrink-0">
             <PromptInput
             onSubmit={handleSubmit}
             className="w-full relative"

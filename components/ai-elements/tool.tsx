@@ -110,7 +110,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
       <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
         Parameters
       </h4>
-      <div className="rounded-md bg-muted/50">
+      <div className="rounded-md bg-muted/50 overflow-x-auto max-w-full">
         <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
       </div>
     </div>
@@ -149,13 +149,13 @@ export const ToolOutput = ({
       </h4>
       <div
         className={cn(
-          "overflow-x-auto rounded-md text-xs [&_table]:w-full",
+          "overflow-x-auto rounded-md text-xs max-w-full [&_table]:w-full",
           errorText
             ? "bg-destructive/10 text-destructive"
             : "bg-muted/50 text-foreground"
         )}
       >
-        {errorText && <div>{errorText}</div>}
+        {errorText && <div className="break-words">{errorText}</div>}
         {Output}
       </div>
     </div>
@@ -179,7 +179,7 @@ export const ToolCompact = ({
 
   if (isPending && actionText) {
     return (
-      <div className={cn("text-sm text-foreground", className)} {...props}>
+      <div className={cn("text-sm text-foreground break-words", className)} {...props}>
         {actionText}
       </div>
     );
@@ -187,7 +187,7 @@ export const ToolCompact = ({
 
   if (isError && tool.errorText) {
     return (
-      <div className={cn("text-sm text-destructive", className)} {...props}>
+      <div className={cn("text-sm text-destructive break-words", className)} {...props}>
         {tool.errorText}
       </div>
     );
@@ -206,7 +206,7 @@ export const ToolCompact = ({
     }
 
     return (
-      <div className={cn("text-sm text-muted-foreground", className)} {...props}>
+      <div className={cn("text-sm text-muted-foreground break-words", className)} {...props}>
         {message}
       </div>
     );

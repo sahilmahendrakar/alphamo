@@ -4,39 +4,7 @@
       "name": "AlphaMo",
       "properties": [
         {
-          "name": "Connecticut Avenue",
-          "colorGroup": "Light Blue",
-          "houses": 0,
-          "hotels": 0,
-          "isMortgaged": false
-        }
-      ],
-      "money": 1380,
-      "token": "Race Car",
-      "inJail": false,
-      "position": 9
-    },
-    {
-      "name": "Ben",
-      "properties": [
-        {
-          "name": "Baltic Avenue",
-          "colorGroup": "Brown",
-          "houses": 0,
-          "hotels": 0,
-          "isMortgaged": false
-        }
-      ],
-      "money": 1440,
-      "token": "Dog",
-      "inJail": false,
-      "position": 3
-    },
-    {
-      "name": "Vish",
-      "properties": [
-        {
-          "name": "Reading Railroad",
+          "name": "Pennsylvania Railroad",
           "colorGroup": "Railroad",
           "houses": 0,
           "hotels": 0,
@@ -44,9 +12,25 @@
         }
       ],
       "money": 1300,
+      "token": "Race Car",
+      "inJail": false,
+      "position": 15
+    },
+    {
+      "name": "Ben",
+      "properties": [],
+      "money": 1500,
+      "token": "Dog",
+      "inJail": false,
+      "position": 0
+    },
+    {
+      "name": "Vish",
+      "properties": [],
+      "money": 1500,
       "token": "Thimble",
       "inJail": false,
-      "position": 5
+      "position": 0
     },
     {
       "name": "Sahel",

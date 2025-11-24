@@ -41,9 +41,10 @@ interface SpeechRecognition extends EventTarget {
 
 interface TurnSidebarProps {
   onCapture?: (item: CapturedItem) => void;
+  isDealInterfaceOpen?: boolean;
 }
 
-export function TurnSidebar({ onCapture }: TurnSidebarProps) {
+export function TurnSidebar({ onCapture, isDealInterfaceOpen }: TurnSidebarProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -216,16 +217,21 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.code === 'Space') {
-        event.preventDefault();
-        if (isSessionActive) {
-            captureAndFlush();
+        const target = event.target as HTMLElement;
+        const isTyping = target.tagName === 'INPUT' || 
+                         target.tagName === 'TEXTAREA' || 
+                         target.isContentEditable;
+        
+        if (!isTyping && !isDealInterfaceOpen && isSessionActive) {
+          event.preventDefault();
+          captureAndFlush();
         }
       }
     };
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [captureAndFlush, isSessionActive]);
+  }, [captureAndFlush, isSessionActive, isDealInterfaceOpen]);
 
   useEffect(() => {
     return () => {

@@ -120,7 +120,7 @@ export default function Home() {
 
           {/* Right: Turn Sidebar (Fixed width) */}
           <div className="w-[350px] shrink-0 border-l border-gray-200 bg-white z-10">
-             <TurnSidebar onCapture={handleCapture} />
+             <TurnSidebar onCapture={handleCapture} isDealInterfaceOpen={isDealInterfaceOpen} />
           </div>
       </div>
 
@@ -130,13 +130,13 @@ export default function Home() {
             isDealInterfaceOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white">
+        <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white shrink-0">
             <h2 className="font-semibold text-xl text-gray-900">Propose Deal</h2>
             <Button variant="ghost" size="icon" onClick={() => setIsDealInterfaceOpen(false)}>
                 <X className="h-5 w-5" />
             </Button>
         </div>
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
             <DealInterface />
         </div>
       </div>

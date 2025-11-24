@@ -162,14 +162,14 @@ export function AlphamoChatPanel({ messages, isLoading }: AlphamoChatPanelProps)
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white overflow-hidden">
       <div className="p-4 border-b border-gray-200 shrink-0">
         <h2 className="font-semibold text-lg text-gray-900">Alphamo Assistant</h2>
         <p className="text-xs text-gray-500 mt-1">AI-powered Monopoly insights</p>
       </div>
 
-      <Conversation className="flex-1">
-        <ConversationContent>
+      <Conversation className="flex-1 overflow-hidden">
+        <ConversationContent className="max-w-full">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full text-center px-4">
               <div className="space-y-2">
@@ -181,8 +181,8 @@ export function AlphamoChatPanel({ messages, isLoading }: AlphamoChatPanelProps)
             </div>
           ) : (
             messages.map((message) => (
-              <Message key={message.id} from={message.role}>
-                <MessageContent>
+              <Message key={message.id} from={message.role} className="max-w-full">
+                <MessageContent className="max-w-full overflow-hidden">
                   {message.parts.map((part: any, i: number) => {
                     switch (part.type) {
                       case 'text':
