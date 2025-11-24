@@ -37,10 +37,84 @@ type SumToolOutput = {
   result: number;
 };
 
-type SumToolUIPart = ToolUIPart<{
+type AddPlayerInput = {
+  name: string;
+  initialMoney?: number;
+};
+
+type AddPlayerOutput = {
+  success: boolean;
+  message: string;
+  player?: { name: string; money: number; properties: [] };
+};
+
+type UpdatePlayerMoneyInput = {
+  playerName: string;
+  amount: number;
+};
+
+type UpdatePlayerMoneyOutput = {
+  success: boolean;
+  message: string;
+  player?: { name: string; money: number };
+};
+
+type AddPropertyInput = {
+  playerName: string;
+  propertyName: string;
+  colorGroup: string;
+  houses?: number;
+  hotels?: number;
+};
+
+type AddPropertyOutput = {
+  success: boolean;
+  message: string;
+  property?: { name: string; colorGroup: string; houses: number; hotels: number };
+};
+
+type RemovePropertyInput = {
+  playerName: string;
+  propertyName: string;
+};
+
+type RemovePropertyOutput = {
+  success: boolean;
+  message: string;
+  property?: { name: string; colorGroup: string; houses: number; hotels: number };
+};
+
+type GetMemoryBankOutput = {
+  success: boolean;
+  message?: string;
+  memoryBank?: any;
+  summary?: string;
+};
+
+type MonopolyToolUIPart = ToolUIPart<{
   sum: {
     input: SumToolInput;
     output: SumToolOutput;
+  };
+  addPlayer: {
+    input: AddPlayerInput;
+    output: AddPlayerOutput;
+  };
+  updatePlayerMoney: {
+    input: UpdatePlayerMoneyInput;
+    output: UpdatePlayerMoneyOutput;
+  };
+  addProperty: {
+    input: AddPropertyInput;
+    output: AddPropertyOutput;
+  };
+  removeProperty: {
+    input: RemovePropertyInput;
+    output: RemovePropertyOutput;
+  };
+  getMemoryBank: {
+    input: Record<string, never>;
+    output: GetMemoryBankOutput;
   };
 }>;
 
@@ -59,8 +133,9 @@ export default function Home() {
   };
 
   const renderToolPart = (part: any, messageId: string, index: number) => {
-    if (part.type === 'tool-sum') {
-      const toolPart = part as SumToolUIPart;
+    const toolPart = part as MonopolyToolUIPart;
+    
+    if (part.type.startsWith('tool-')) {
       return (
         <Tool key={`${messageId}-${index}`} defaultOpen={true}>
           <ToolHeader type={toolPart.type} state={toolPart.state} />
