@@ -2,6 +2,7 @@ import { Experimental_Agent as Agent, stepCountIs } from 'ai';
 import { google } from '@ai-sdk/google';
 import { sum } from '@/lib/tools/sum';
 import { addPlayer } from '@/lib/tools/add-player';
+import { updatePlayer } from '@/lib/tools/update-player';
 import { updatePlayerMoney } from '@/lib/tools/update-player-money';
 import { addProperty } from '@/lib/tools/add-property';
 import { removeProperty } from '@/lib/tools/remove-property';
@@ -18,6 +19,7 @@ export async function createAlphamoAgent() {
     tools: {
       sum,
       addPlayer,
+      updatePlayer,
       updatePlayerMoney,
       addProperty,
       removeProperty,

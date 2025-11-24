@@ -1,5 +1,5 @@
 import React from 'react';
-import { MemoryBank, Player, Property } from '@/lib/memory/types';
+import { MemoryBank, Player, Property, TOKEN_EMOJI_MAP } from '@/lib/memory/types';
 import { Button } from '@/components/ui/button';
 import { Handshake } from 'lucide-react';
 
@@ -44,7 +44,19 @@ function PlayerCard({ player, onOfferDeal }: { player: Player; onOfferDeal: () =
     <div className="flex flex-col bg-white border border-gray-200 h-full">
       <div className="p-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
         <div className="flex items-baseline gap-4">
-          <h3 className="font-bold text-2xl text-gray-900 tracking-tight">{player.name}</h3>
+          <div className="flex items-center gap-2">
+            {player.token && (
+              <span className="text-2xl" title={player.token}>
+                {TOKEN_EMOJI_MAP[player.token]}
+              </span>
+            )}
+            <h3 className="font-bold text-2xl text-gray-900 tracking-tight">{player.name}</h3>
+            {player.inJail && (
+              <span className="text-xl" title="In Jail">
+                ⛓️
+              </span>
+            )}
+          </div>
           <span className="font-mono font-semibold text-xl text-gray-600">
             ${player.money.toLocaleString()}
           </span>

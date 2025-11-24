@@ -1,11 +1,12 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { withTransaction, getPlayer, getAvailablePlayerNames, type MemoryBank } from '@/lib/memory/utils';
+import { AVAILABLE_TOKENS, Token } from '@/lib/memory/types';
 
 type AddPlayerResult = {
   success: boolean;
   message: string;
-  player?: { name: string; money: number; properties: never[] };
+  player?: { name: string; money: number; properties: never[]; token?: Token | null };
 };
 
 export const addPlayer = tool({
@@ -13,8 +14,9 @@ export const addPlayer = tool({
   inputSchema: z.object({
     name: z.string().describe('Name of the player to add'),
     initialMoney: z.number().optional().default(1500).describe('Initial money for the player (default: 1500)'),
+    token: z.enum(AVAILABLE_TOKENS).optional().describe('Optional game token for the player (e.g., Dog, Top Hat, Thimble, Boot, Battleship, Iron, Race Car, Wheelbarrow, Cat, Penguin, Rubber Ducky, T-Rex, Bag of Gold, Cannon)'),
   }),
-  execute: async ({ name, initialMoney }) => {
+  execute: async ({ name, initialMoney, token }) => {
     try {
       if (!name || name.trim() === '') {
         return {
@@ -43,18 +45,34 @@ export const addPlayer = tool({
           };
         }
 
+        if (token) {
+          const playerWithToken = memoryBank.players.find(p => p.token === token);
+          if (playerWithToken) {
+            return {
+              memoryBank,
+              result: {
+                success: false,
+                message: `Token "${token}" is already taken by ${playerWithToken.name}. Please choose a different token.`,
+              },
+            };
+          }
+        }
+
         memoryBank.players.push({
           name: name.trim(),
           properties: [],
           money: initialMoney,
+          token: token || null,
+          inJail: false,
         });
 
+        const tokenMessage = token ? ` with token ${token}` : '';
         return {
           memoryBank,
           result: {
             success: true,
-            message: `Player "${name.trim()}" added with $${initialMoney}.`,
-            player: { name: name.trim(), money: initialMoney, properties: [] },
+            message: `Player "${name.trim()}" added with $${initialMoney}${tokenMessage}.`,
+            player: { name: name.trim(), money: initialMoney, properties: [], token: token || null },
           },
         };
       });

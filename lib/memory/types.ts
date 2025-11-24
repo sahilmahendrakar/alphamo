@@ -6,10 +6,48 @@ export interface Property {
   isMortgaged: boolean;
 }
 
+export const AVAILABLE_TOKENS = [
+  'Dog',
+  'Top Hat',
+  'Thimble',
+  'Boot',
+  'Battleship',
+  'Iron',
+  'Race Car',
+  'Wheelbarrow',
+  'Cat',
+  'Penguin',
+  'Rubber Ducky',
+  'T-Rex',
+  'Bag of Gold',
+  'Cannon',
+] as const;
+
+export type Token = typeof AVAILABLE_TOKENS[number];
+
+export const TOKEN_EMOJI_MAP: Record<Token, string> = {
+  'Dog': '🐕',
+  'Top Hat': '🎩',
+  'Thimble': '🧵',
+  'Boot': '👢',
+  'Battleship': '🚢',
+  'Iron': '⚫',
+  'Race Car': '🏎️',
+  'Wheelbarrow': '🛞',
+  'Cat': '🐈',
+  'Penguin': '🐧',
+  'Rubber Ducky': '🦆',
+  'T-Rex': '🦖',
+  'Bag of Gold': '💰',
+  'Cannon': '💣',
+};
+
 export interface Player {
   name: string;
   properties: Property[];
   money: number;
+  token?: Token | null;
+  inJail: boolean;
 }
 
 export interface MemoryBank {

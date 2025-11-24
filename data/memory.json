@@ -2,55 +2,24 @@
   "players": [
     {
       "name": "Ben",
-      "properties": [
-        {
-          "name": "Oriental Avenue",
-          "colorGroup": "Light Blue",
-          "houses": 0,
-          "hotels": 0,
-          "isMortgaged": false
-        }
-      ],
-      "money": 106
-    },
-    {
-      "name": "Sahil",
-      "properties": [
-        {
-          "name": "Marvin Gardens",
-          "colorGroup": "Yellow",
-          "houses": 0,
-          "hotels": 0,
-          "isMortgaged": false
-        }
-      ],
-      "money": 94
+      "properties": [],
+      "money": 200,
+      "token": "Thimble",
+      "inJail": false
     },
     {
       "name": "Vish",
-      "properties": [
-        {
-          "name": "Baltic Avenue",
-          "colorGroup": "Brown",
-          "houses": 0,
-          "hotels": 0,
-          "isMortgaged": false
-        }
-      ],
-      "money": 240
+      "properties": [],
+      "money": 200,
+      "token": "Dog",
+      "inJail": false
     },
     {
-      "name": "AlphaMo",
-      "properties": [
-        {
-          "name": "Reading Railroad",
-          "colorGroup": "Railroad",
-          "houses": 0,
-          "hotels": 0,
-          "isMortgaged": false
-        }
-      ],
-      "money": 1600
+      "name": "Sahil",
+      "properties": [],
+      "money": 200,
+      "token": "Cannon",
+      "inJail": false
     }
   ]
 }

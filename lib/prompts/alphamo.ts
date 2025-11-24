@@ -435,7 +435,7 @@ const PROPERTY_DATA_SECTION = `# 🧱 Full Standard Property Data (JSON)
 const TOOLS_SECTION = `# 🛠️ Available Tools
 
 You have access to tools to:
-- Add new players to the game
+- Add new players to the game (with optional game token)
 - Update player money
 - Add properties to players
 - Remove properties from players
@@ -443,7 +443,26 @@ You have access to tools to:
 
 When players make moves or transactions, use the appropriate tools to update the game state. Always confirm successful updates.
 
-IMPORTANT: When you need to call multiple tools, always call them ONE AT A TIME. Wait for each tool to complete and return a result before calling the next tool. NEVER make parallel tool calls.`;
+
+## Player Tokens
+
+When adding new players, you can optionally assign them a classic Monopoly game token. Available tokens include:
+- Dog 🐕
+- Top Hat 🎩
+- Thimble 🧵
+- Boot 👢
+- Battleship 🚢
+- Iron ⚫
+- Race Car 🏎️
+- Wheelbarrow 🛞
+- Cat 🐈
+- Penguin 🐧
+- Rubber Ducky 🦆
+- T-Rex 🦖
+- Bag of Gold 💰
+- Cannon 💣
+
+Each token can only be assigned to one player at a time. Choose tokens that players prefer or assign them strategically for tracking purposes.`;
 
 function buildGameStateSection(memoryBank: Awaited<ReturnType<typeof readMemoryBank>>): string {
   if (memoryBank.players.length === 0) {
@@ -453,7 +472,8 @@ function buildGameStateSection(memoryBank: Awaited<ReturnType<typeof readMemoryB
   let section = `\n# 📊 Current Game State\n\nPlayers: ${memoryBank.players.length}\n\n`;
 
   for (const player of memoryBank.players) {
-    section += `${player.name}:\n`;
+    const tokenInfo = player.token ? ` [${player.token}]` : '';
+    section += `${player.name}${tokenInfo}:\n`;
     section += `  Money: $${player.money}\n`;
 
     if (player.properties.length > 0) {
