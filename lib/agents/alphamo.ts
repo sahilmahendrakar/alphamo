@@ -5,6 +5,7 @@ import { addPlayer } from '@/lib/tools/add-player';
 import { updatePlayerMoney } from '@/lib/tools/update-player-money';
 import { addProperty } from '@/lib/tools/add-property';
 import { removeProperty } from '@/lib/tools/remove-property';
+import { updateProperty } from '@/lib/tools/update-property';
 import { getMemoryBank } from '@/lib/tools/get-memory-bank';
 import { buildSystemPrompt } from '@/lib/prompts/alphamo';
 
@@ -20,6 +21,7 @@ export async function createAlphamoAgent() {
       updatePlayerMoney,
       addProperty,
       removeProperty,
+      updateProperty,
       getMemoryBank,
     },
     stopWhen: stepCountIs(20),

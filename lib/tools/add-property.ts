@@ -10,8 +10,9 @@ export const addProperty = tool({
     colorGroup: z.string().describe('Color group of the property (e.g., blue, brown, red)'),
     houses: z.number().optional().default(0).describe('Number of houses on the property (default: 0)'),
     hotels: z.number().optional().default(0).describe('Number of hotels on the property (default: 0)'),
+    isMortgaged: z.boolean().optional().default(false).describe('Whether the property is mortgaged (default: false)'),
   }),
-  execute: async ({ playerName, propertyName, colorGroup, houses, hotels }) => {
+  execute: async ({ playerName, propertyName, colorGroup, houses, hotels, isMortgaged }) => {
     try {
       if (!playerName || playerName.trim() === '') {
         return {
@@ -55,13 +56,13 @@ export const addProperty = tool({
           const playerList = availablePlayers.length > 0 
             ? `Available players: ${availablePlayers.join(', ')}.` 
             : 'No players exist yet. Add a player first using the addPlayer tool.';
-          return {
-            memoryBank,
-            result: {
-              success: false,
-              message: `Player "${playerName}" does not exist. ${playerList}`,
-            },
-          };
+        return {
+          memoryBank,
+          result: {
+            success: false,
+            message: `Player "${playerName}" does not exist. ${playerList}`,
+          } as { success: boolean; message: string; property?: { name: string; colorGroup: string; houses: number; hotels: number; isMortgaged: boolean } },
+        };
         }
 
         const existingProperty = player.properties.find(
@@ -69,13 +70,13 @@ export const addProperty = tool({
         );
         
         if (existingProperty) {
-          return {
-            memoryBank,
-            result: {
-              success: false,
-              message: `Player "${player.name}" already owns "${propertyName}". Use a different property name or remove it first.`,
-            },
-          };
+        return {
+          memoryBank,
+          result: {
+            success: false,
+            message: `Player "${player.name}" already owns "${propertyName}". Use a different property name or remove it first.`,
+          } as { success: boolean; message: string; property?: { name: string; colorGroup: string; houses: number; hotels: number; isMortgaged: boolean } },
+        };
         }
 
         player.properties.push({
@@ -83,14 +84,15 @@ export const addProperty = tool({
           colorGroup: colorGroup.trim(),
           houses,
           hotels,
+          isMortgaged: isMortgaged ?? false,
         });
 
         return {
           memoryBank,
           result: {
             success: true,
-            message: `Property "${propertyName.trim()}" (${colorGroup.trim()}) added to ${player.name}${houses > 0 ? ` with ${houses} house(s)` : ''}${hotels > 0 ? ` and ${hotels} hotel(s)` : ''}.`,
-            property: { name: propertyName.trim(), colorGroup: colorGroup.trim(), houses, hotels },
+            message: `Property "${propertyName.trim()}" (${colorGroup.trim()}) added to ${player.name}${houses > 0 ? ` with ${houses} house(s)` : ''}${hotels > 0 ? ` and ${hotels} hotel(s)` : ''}${isMortgaged ? ' (mortgaged)' : ''}.`,
+            property: { name: propertyName.trim(), colorGroup: colorGroup.trim(), houses, hotels, isMortgaged: isMortgaged ?? false },
           },
         };
       });

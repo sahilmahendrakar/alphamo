@@ -3,6 +3,7 @@ export interface Property {
   colorGroup: string;
   houses: number;
   hotels: number;
+  isMortgaged: boolean;
 }
 
 export interface Player {
