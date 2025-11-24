@@ -1,207 +1,68 @@
 'use client';
 
-import {
-  Conversation,
-  ConversationContent,
-  ConversationEmptyState,
-  ConversationScrollButton,
-} from '@/components/ai-elements/conversation';
-import { 
-  Message, 
-  MessageContent,
-  MessageResponse,
-} from '@/components/ai-elements/message';
-import {
-  PromptInput,
-  PromptInputTextarea,
-  PromptInputSubmit,
-  type PromptInputMessage,
-} from '@/components/ai-elements/prompt-input';
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from '@/components/ai-elements/tool';
-import { MessageSquare } from 'lucide-react';
-import { useChat } from '@ai-sdk/react';
-import type { ToolUIPart } from 'ai';
-
-type SumToolInput = {
-  a: number;
-  b: number;
-};
-
-type SumToolOutput = {
-  result: number;
-};
-
-type AddPlayerInput = {
-  name: string;
-  initialMoney?: number;
-};
-
-type AddPlayerOutput = {
-  success: boolean;
-  message: string;
-  player?: { name: string; money: number; properties: [] };
-};
-
-type UpdatePlayerMoneyInput = {
-  playerName: string;
-  amount: number;
-};
-
-type UpdatePlayerMoneyOutput = {
-  success: boolean;
-  message: string;
-  player?: { name: string; money: number };
-};
-
-type AddPropertyInput = {
-  playerName: string;
-  propertyName: string;
-  colorGroup: string;
-  houses?: number;
-  hotels?: number;
-};
-
-type AddPropertyOutput = {
-  success: boolean;
-  message: string;
-  property?: { name: string; colorGroup: string; houses: number; hotels: number };
-};
-
-type RemovePropertyInput = {
-  playerName: string;
-  propertyName: string;
-};
-
-type RemovePropertyOutput = {
-  success: boolean;
-  message: string;
-  property?: { name: string; colorGroup: string; houses: number; hotels: number };
-};
-
-type GetMemoryBankOutput = {
-  success: boolean;
-  message?: string;
-  memoryBank?: any;
-  summary?: string;
-};
-
-type MonopolyToolUIPart = ToolUIPart<{
-  sum: {
-    input: SumToolInput;
-    output: SumToolOutput;
-  };
-  addPlayer: {
-    input: AddPlayerInput;
-    output: AddPlayerOutput;
-  };
-  updatePlayerMoney: {
-    input: UpdatePlayerMoneyInput;
-    output: UpdatePlayerMoneyOutput;
-  };
-  addProperty: {
-    input: AddPropertyInput;
-    output: AddPropertyOutput;
-  };
-  removeProperty: {
-    input: RemovePropertyInput;
-    output: RemovePropertyOutput;
-  };
-  getMemoryBank: {
-    input: Record<string, never>;
-    output: GetMemoryBankOutput;
-  };
-}>;
-
-const formatSumResult = (output?: SumToolOutput): string => {
-  if (!output) return 'Calculating...';
-  return JSON.stringify({ result: output.result }, null, 2);
-};
+import { useState } from 'react';
+import { GameStateDisplay } from '@/components/game-state-display';
+import { DealInterface } from '@/components/deal-interface';
+import { TurnSidebar } from '@/components/turn-sidebar';
+import { initialGameState } from '@/app/dummy/data';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 export default function Home() {
-  const { messages, sendMessage, status } = useChat();
-
-  const handleSubmit = (message: PromptInputMessage) => {
-    if (message.text.trim()) {
-      sendMessage({ text: message.text, files: message.files });
-    }
-  };
-
-  const renderToolPart = (part: any, messageId: string, index: number) => {
-    const toolPart = part as MonopolyToolUIPart;
-    
-    if (part.type.startsWith('tool-')) {
-      return (
-        <Tool key={`${messageId}-${index}`} defaultOpen={true}>
-          <ToolHeader type={toolPart.type} state={toolPart.state} />
-          <ToolContent>
-            <ToolInput input={toolPart.input} />
-            <ToolOutput
-              output={toolPart.output}
-              errorText={toolPart.errorText}
-            />
-          </ToolContent>
-        </Tool>
-      );
-    }
-    return null;
-  };
+  const [isDealInterfaceOpen, setIsDealInterfaceOpen] = useState(false);
+  const [gameState] = useState(initialGameState);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 relative size-full h-screen">
-      <div className="flex flex-col h-full">
-        <Conversation>
-          <ConversationContent>
-            {messages.length === 0 ? (
-              <ConversationEmptyState
-                icon={<MessageSquare className="size-12" />}
-                title="Start a conversation"
-                description="Type a message below to begin chatting"
-              />
-            ) : (
-              messages.map((message) => (
-                <Message from={message.role} key={message.id}>
-                  <MessageContent>
-                    {message.parts.map((part, i) => {
-                      switch (part.type) {
-                        case 'text':
-                          return (
-                            <MessageResponse key={`${message.id}-${i}`}>
-                              {part.text}
-                            </MessageResponse>
-                          );
-                        default:
-                          if (part.type.startsWith('tool-')) {
-                            return renderToolPart(part, message.id, i);
-                          }
-                          return null;
-                      }
-                    })}
-                  </MessageContent>
-                </Message>
-              ))
-            )}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
-        <PromptInput
-          onSubmit={handleSubmit}
-          className="mt-4 w-full max-w-2xl mx-auto relative"
-        >
-          <PromptInputTextarea
-            placeholder="Say something..."
-            className="pr-12"
-          />
-          <PromptInputSubmit
-            status={status === 'streaming' ? 'streaming' : 'ready'}
-            className="absolute bottom-1 right-1"
-          />
-        </PromptInput>
+    <div className="flex flex-col h-screen bg-gray-50 font-sans overflow-hidden">
+
+      {/* 1. Header Row - Full Width */}
+      <div className="h-20 shrink-0 bg-white border-b border-gray-200 flex items-center px-8 shadow-sm z-20">
+        <div className="flex items-center gap-4">
+             <div className="bg-red-600 border-2 border-red-600 rounded shadow-sm">
+               <div className="bg-white border border-white rounded-[1px]">
+                 <div className="bg-red-600 px-4 py-1">
+                   <h1 className="text-2xl font-bold text-white tracking-wide">
+                     AlphaMo
+                   </h1>
+                 </div>
+               </div>
+             </div>
+             <span className="text-gray-400 text-sm font-medium uppercase tracking-wider">Monopoly Assistant</span>
+        </div>
+      </div>
+
+      {/* 2. Main Content Area - Split vertically */}
+      <div className="flex-1 flex overflow-hidden">
+
+          {/* Left: Game State (Flexible width) */}
+          <div className="flex-1 overflow-y-auto p-8 bg-[#F3F4F6]">
+             <GameStateDisplay
+                gameState={gameState}
+                onOfferDeal={() => setIsDealInterfaceOpen(true)}
+            />
+          </div>
+
+          {/* Right: Turn Sidebar (Fixed width) */}
+          <div className="w-[350px] shrink-0 border-l border-gray-200 bg-white z-10">
+             <TurnSidebar />
+          </div>
+      </div>
+
+      {/* Deal Interface Slide-over */}
+      <div
+        className={`fixed inset-y-0 right-0 w-[450px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 border-l border-gray-200 flex flex-col ${
+            isDealInterfaceOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white">
+            <h2 className="font-semibold text-xl text-gray-900">Propose Deal</h2>
+            <Button variant="ghost" size="icon" onClick={() => setIsDealInterfaceOpen(false)}>
+                <X className="h-5 w-5" />
+            </Button>
+        </div>
+        <div className="flex-1 overflow-hidden">
+            <DealInterface />
+        </div>
       </div>
     </div>
   );
