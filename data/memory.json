@@ -15,11 +15,32 @@
     },
     {
       "name": "Sahil",
-      "properties": [],
-      "money": 374
+      "properties": [
+        {
+          "name": "Marvin Gardens",
+          "colorGroup": "Yellow",
+          "houses": 0,
+          "hotels": 0,
+          "isMortgaged": false
+        }
+      ],
+      "money": 94
     },
     {
       "name": "Vish",
+      "properties": [
+        {
+          "name": "Baltic Avenue",
+          "colorGroup": "Brown",
+          "houses": 0,
+          "hotels": 0,
+          "isMortgaged": false
+        }
+      ],
+      "money": 240
+    },
+    {
+      "name": "AlphaMo",
       "properties": [
         {
           "name": "Reading Railroad",
@@ -29,7 +50,7 @@
           "isMortgaged": false
         }
       ],
-      "money": 0
+      "money": 1600
     }
   ]
 }

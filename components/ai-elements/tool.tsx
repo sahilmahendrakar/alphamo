@@ -161,3 +161,56 @@ export const ToolOutput = ({
     </div>
   );
 };
+
+export type ToolCompactProps = ComponentProps<"div"> & {
+  tool: ToolUIPart;
+  actionText?: string;
+};
+
+export const ToolCompact = ({
+  className,
+  tool,
+  actionText,
+  ...props
+}: ToolCompactProps) => {
+  const isPending = tool.state === "input-streaming" || tool.state === "input-available";
+  const isError = tool.state === "output-error";
+  const isComplete = tool.state === "output-available";
+
+  if (isPending && actionText) {
+    return (
+      <div className={cn("text-sm text-foreground", className)} {...props}>
+        {actionText}
+      </div>
+    );
+  }
+
+  if (isError && tool.errorText) {
+    return (
+      <div className={cn("text-sm text-destructive", className)} {...props}>
+        {tool.errorText}
+      </div>
+    );
+  }
+
+  if (isComplete && tool.output) {
+    let message = "";
+    
+    if (typeof tool.output === "object" && !isValidElement(tool.output)) {
+      const outputObj = tool.output as any;
+      message = outputObj.message || JSON.stringify(tool.output);
+    } else if (typeof tool.output === "string") {
+      message = tool.output;
+    } else {
+      message = String(tool.output);
+    }
+
+    return (
+      <div className={cn("text-sm text-muted-foreground", className)} {...props}>
+        {message}
+      </div>
+    );
+  }
+
+  return null;
+};
