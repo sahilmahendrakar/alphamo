@@ -112,10 +112,10 @@ function PropertyCard({ property }: { property: Property }) {
   const colorClass = colorMap[property.colorGroup] || 'bg-gray-200';
 
   return (
-    <div className="w-full aspect-[3/4] bg-white border border-gray-300 flex flex-col text-center relative cursor-default rounded-[1px] overflow-hidden group">
+    <div className="w-full aspect-[3/4] bg-white border border-gray-300 flex flex-col text-center relative cursor-default rounded-[1px] overflow-visible group">
         {/* Houses/Hotels Visual Indicator */}
         {(property.houses > 0 || property.hotels > 0) && (
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 flex gap-0.5 z-20">
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 flex gap-0.5 z-20">
                 {property.hotels > 0 ? (
                    <div className="bg-red-600 text-white p-1 rounded shadow-sm border border-red-700">
                       <HotelIcon className="w-3 h-3" />
