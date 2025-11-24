@@ -1,4 +1,4 @@
-import { Experimental_Agent as Agent } from 'ai';
+import { Experimental_Agent as Agent, stepCountIs } from 'ai';
 import { google } from '@ai-sdk/google';
 import { sum } from '@/lib/tools/sum';
 import { addPlayer } from '@/lib/tools/add-player';
@@ -12,7 +12,7 @@ export async function createAlphamoAgent() {
   const systemPrompt = await buildSystemPrompt();
   
   return new Agent({
-    model: google('gemini-2.5-flash-lite'),
+    model: google('gemini-2.5-flash'),
     system: systemPrompt,
     tools: {
       sum,
@@ -22,6 +22,6 @@ export async function createAlphamoAgent() {
       removeProperty,
       getMemoryBank,
     },
+    stopWhen: stepCountIs(20),
   });
 }
-

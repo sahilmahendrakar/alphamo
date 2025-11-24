@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { readMemoryBank, writeMemoryBank, getPlayer, getAvailablePlayerNames } from '@/lib/memory/utils';
+import { withTransaction, getPlayer, getAvailablePlayerNames } from '@/lib/memory/utils';
 
 export const updatePlayerMoney = tool({
   description: 'Update a player\'s money in the Monopoly game',
@@ -24,29 +24,34 @@ export const updatePlayerMoney = tool({
         };
       }
 
-      const memoryBank = await readMemoryBank();
-      
-      const player = getPlayer(memoryBank, playerName);
-      if (!player) {
-        const availablePlayers = getAvailablePlayerNames(memoryBank);
-        const playerList = availablePlayers.length > 0 
-          ? `Available players: ${availablePlayers.join(', ')}.` 
-          : 'No players exist yet. Add a player first using the addPlayer tool.';
+      return await withTransaction(async (memoryBank) => {
+        const player = getPlayer(memoryBank, playerName);
+        if (!player) {
+          const availablePlayers = getAvailablePlayerNames(memoryBank);
+          const playerList = availablePlayers.length > 0 
+            ? `Available players: ${availablePlayers.join(', ')}.` 
+            : 'No players exist yet. Add a player first using the addPlayer tool.';
+          return {
+            memoryBank,
+            result: {
+              success: false,
+              message: `Player "${playerName}" does not exist. ${playerList}`,
+            },
+          };
+        }
+
+        const oldAmount = player.money;
+        player.money = amount;
+
         return {
-          success: false,
-          message: `Player "${playerName}" does not exist. ${playerList}`,
+          memoryBank,
+          result: {
+            success: true,
+            message: `Player "${player.name}" money updated from $${oldAmount} to $${amount}.`,
+            player: { name: player.name, money: player.money },
+          },
         };
-      }
-
-      const oldAmount = player.money;
-      player.money = amount;
-      await writeMemoryBank(memoryBank);
-
-      return {
-        success: true,
-        message: `Player "${player.name}" money updated from $${oldAmount} to $${amount}.`,
-        player: { name: player.name, money: player.money },
-      };
+      });
     } catch (error) {
       return {
         success: false,

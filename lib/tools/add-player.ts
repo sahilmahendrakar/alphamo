@@ -1,6 +1,12 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { readMemoryBank, writeMemoryBank, getPlayer, getAvailablePlayerNames } from '@/lib/memory/utils';
+import { withTransaction, getPlayer, getAvailablePlayerNames, type MemoryBank } from '@/lib/memory/utils';
+
+type AddPlayerResult = {
+  success: boolean;
+  message: string;
+  player?: { name: string; money: number; properties: never[] };
+};
 
 export const addPlayer = tool({
   description: 'Add a new player to the Monopoly game',
@@ -24,30 +30,34 @@ export const addPlayer = tool({
         };
       }
 
-      const memoryBank = await readMemoryBank();
-      
-      const existingPlayer = getPlayer(memoryBank, name);
-      if (existingPlayer) {
-        const availablePlayers = getAvailablePlayerNames(memoryBank);
+      return await withTransaction<AddPlayerResult>(async (memoryBank: MemoryBank): Promise<{ memoryBank: MemoryBank; result: AddPlayerResult }> => {
+        const existingPlayer = getPlayer(memoryBank, name);
+        if (existingPlayer) {
+          const availablePlayers = getAvailablePlayerNames(memoryBank);
+          return {
+            memoryBank,
+            result: {
+              success: false,
+              message: `Player "${name}" already exists in the game. Current players: ${availablePlayers.join(', ')}.`,
+            },
+          };
+        }
+
+        memoryBank.players.push({
+          name: name.trim(),
+          properties: [],
+          money: initialMoney,
+        });
+
         return {
-          success: false,
-          message: `Player "${name}" already exists in the game. Current players: ${availablePlayers.join(', ')}.`,
+          memoryBank,
+          result: {
+            success: true,
+            message: `Player "${name.trim()}" added with $${initialMoney}.`,
+            player: { name: name.trim(), money: initialMoney, properties: [] },
+          },
         };
-      }
-
-      memoryBank.players.push({
-        name: name.trim(),
-        properties: [],
-        money: initialMoney,
       });
-
-      await writeMemoryBank(memoryBank);
-
-      return {
-        success: true,
-        message: `Player "${name.trim()}" added with $${initialMoney}.`,
-        player: { name: name.trim(), money: initialMoney, properties: [] },
-      };
     } catch (error) {
       return {
         success: false,

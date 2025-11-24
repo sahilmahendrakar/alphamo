@@ -12,7 +12,9 @@ You have access to tools to:
 - Remove properties from players
 - Get the current game state
 
-When players make moves or transactions, use the appropriate tools to update the game state. Always confirm successful updates.`;
+When players make moves or transactions, use the appropriate tools to update the game state. Always confirm successful updates.
+
+IMPORTANT: When you need to call multiple tools, always call them ONE AT A TIME. Wait for each tool to complete and return a result before calling the next tool. NEVER make parallel tool calls.`;
 
   if (memoryBank.players.length > 0) {
     prompt += `\n\nCURRENT GAME STATE:\n`;
