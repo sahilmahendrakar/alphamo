@@ -1,16 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GameStateDisplay } from '@/components/game-state-display';
 import { DealInterface } from '@/components/deal-interface';
 import { TurnSidebar } from '@/components/turn-sidebar';
-import { initialGameState } from '@/app/dummy/data';
+import { MemoryBank } from '@/lib/memory/types';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 
 export default function Home() {
   const [isDealInterfaceOpen, setIsDealInterfaceOpen] = useState(false);
-  const [gameState] = useState(initialGameState);
+  const [gameState, setGameState] = useState<MemoryBank | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMemoryState = async () => {
+    try {
+      const response = await fetch('/api/memory');
+      if (!response.ok) {
+        throw new Error('Failed to fetch memory state');
+      }
+      const data = await response.json();
+      setGameState(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching memory state:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMemoryState();
+
+    const pollInterval = setInterval(() => {
+      fetchMemoryState();
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans overflow-hidden">
@@ -36,10 +65,24 @@ export default function Home() {
 
           {/* Left: Game State (Flexible width) */}
           <div className="flex-1 overflow-y-auto p-8 bg-[#F3F4F6]">
-             <GameStateDisplay
-                gameState={gameState}
-                onOfferDeal={() => setIsDealInterfaceOpen(true)}
-            />
+             {isLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-gray-500 text-lg">Loading game state...</div>
+                </div>
+             ) : error ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-red-500 text-lg">Error: {error}</div>
+                </div>
+             ) : gameState ? (
+                <GameStateDisplay
+                  gameState={gameState}
+                  onOfferDeal={() => setIsDealInterfaceOpen(true)}
+                />
+             ) : (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-gray-500 text-lg">No game data available</div>
+                </div>
+             )}
           </div>
 
           {/* Right: Turn Sidebar (Fixed width) */}
