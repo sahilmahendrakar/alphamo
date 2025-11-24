@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+
+Don't have comments in the middle of functions or components. Limit comments in middle of file, there should only be good descriptive comment before important functions if at all. Write self-documenting code that doesn't need comments.
+Write clean, organized, and minimal code.
+Use ShadCN, AI Elements, and AI SDK where possible.
