@@ -9,6 +9,7 @@ import { AlphamoChatPanel } from '@/components/alphamo-chat-panel';
 import { MemoryBank } from '@/lib/memory/types';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { FileUIPart } from 'ai';
 
 export default function Home() {
   const [isDealInterfaceOpen, setIsDealInterfaceOpen] = useState(false);
@@ -46,12 +47,20 @@ export default function Home() {
   }, []);
 
   const handleCapture = (item: CapturedItem) => {
-    if (item.transcript.trim()) {
-      sendMessage({
-        text: item.transcript,
-        files: [],
-      });
-    }
+    const mimeMatch = item.image.match(/^data:(.*?);/);
+    const mediaType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+    
+    const file: FileUIPart = {
+      type: 'file',
+      url: item.image,
+      mediaType,
+      filename: `board-${item.timestamp}.jpg`,
+    };
+    
+    sendMessage({
+      text: item.transcript || 'Captured board state',
+      files: [file],
+    });
   };
 
   return (
