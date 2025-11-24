@@ -17,8 +17,37 @@ import {
   PromptInputSubmit,
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input';
+import {
+  Tool,
+  ToolContent,
+  ToolHeader,
+  ToolInput,
+  ToolOutput,
+} from '@/components/ai-elements/tool';
 import { MessageSquare } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
+import type { ToolUIPart } from 'ai';
+
+type SumToolInput = {
+  a: number;
+  b: number;
+};
+
+type SumToolOutput = {
+  result: number;
+};
+
+type SumToolUIPart = ToolUIPart<{
+  sum: {
+    input: SumToolInput;
+    output: SumToolOutput;
+  };
+}>;
+
+const formatSumResult = (output?: SumToolOutput): string => {
+  if (!output) return 'Calculating...';
+  return JSON.stringify({ result: output.result }, null, 2);
+};
 
 export default function Home() {
   const { messages, sendMessage, status } = useChat();
@@ -27,6 +56,25 @@ export default function Home() {
     if (message.text.trim()) {
       sendMessage({ text: message.text, files: message.files });
     }
+  };
+
+  const renderToolPart = (part: any, messageId: string, index: number) => {
+    if (part.type === 'tool-sum') {
+      const toolPart = part as SumToolUIPart;
+      return (
+        <Tool key={`${messageId}-${index}`} defaultOpen={true}>
+          <ToolHeader type={toolPart.type} state={toolPart.state} />
+          <ToolContent>
+            <ToolInput input={toolPart.input} />
+            <ToolOutput
+              output={toolPart.output}
+              errorText={toolPart.errorText}
+            />
+          </ToolContent>
+        </Tool>
+      );
+    }
+    return null;
   };
 
   return (
@@ -53,6 +101,9 @@ export default function Home() {
                             </MessageResponse>
                           );
                         default:
+                          if (part.type.startsWith('tool-')) {
+                            return renderToolPart(part, message.id, i);
+                          }
                           return null;
                       }
                     })}
