@@ -1,10 +1,31 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import type { MemoryBank, Player } from './types';
+import type { MemoryBank as MemoryBankType, Player as PlayerType } from './types';
+
+export type MemoryBank = MemoryBankType;
+export type Player = PlayerType;
 
 const MEMORY_FILE_PATH = join(process.cwd(), 'data', 'memory.json');
 
-function validateMemoryBank(data: unknown): { valid: boolean; error?: string; data?: MemoryBank } {
+let fileLock: Promise<void> = Promise.resolve();
+
+async function withFileLock<T>(operation: () => Promise<T>): Promise<T> {
+  const previousLock = fileLock;
+  let releaseLock: () => void;
+  
+  fileLock = new Promise<void>((resolve) => {
+    releaseLock = resolve;
+  });
+
+  try {
+    await previousLock;
+    return await operation();
+  } finally {
+    releaseLock!();
+  }
+}
+
+function validateMemoryBank(data: unknown): { valid: boolean; error?: string; data?: MemoryBankType } {
   if (typeof data !== 'object' || data === null) {
     return { valid: false, error: 'Memory bank data is not a valid object' };
   }
@@ -33,7 +54,7 @@ function validateMemoryBank(data: unknown): { valid: boolean; error?: string; da
     }
   }
 
-  return { valid: true, data: memoryBank as MemoryBank };
+  return { valid: true, data: memoryBank as unknown as MemoryBankType };
 }
 
 export async function ensureMemoryFile(): Promise<void> {
@@ -44,7 +65,7 @@ export async function ensureMemoryFile(): Promise<void> {
     try {
       await fs.access(MEMORY_FILE_PATH);
     } catch {
-      const emptyMemory: MemoryBank = { players: [] };
+      const emptyMemory: MemoryBankType = { players: [] };
       await fs.writeFile(MEMORY_FILE_PATH, JSON.stringify(emptyMemory, null, 2), 'utf-8');
     }
   } catch (error) {
@@ -53,56 +74,103 @@ export async function ensureMemoryFile(): Promise<void> {
   }
 }
 
-export async function readMemoryBank(): Promise<MemoryBank> {
-  try {
-    await ensureMemoryFile();
-    const fileContent = await fs.readFile(MEMORY_FILE_PATH, 'utf-8');
-    
-    if (!fileContent || fileContent.trim() === '') {
-      const emptyMemory: MemoryBank = { players: [] };
-      await fs.writeFile(MEMORY_FILE_PATH, JSON.stringify(emptyMemory, null, 2), 'utf-8');
-      return emptyMemory;
-    }
-
-    let parsedData: unknown;
+export async function readMemoryBank(): Promise<MemoryBankType> {
+  return withFileLock(async () => {
     try {
-      parsedData = JSON.parse(fileContent);
-    } catch (parseError) {
-      throw new Error(`Memory file contains invalid JSON: ${parseError instanceof Error ? parseError.message : 'Parse failed'}`);
-    }
+      await ensureMemoryFile();
+      const fileContent = await fs.readFile(MEMORY_FILE_PATH, 'utf-8');
+      
+      if (!fileContent || fileContent.trim() === '') {
+        const emptyMemory: MemoryBankType = { players: [] };
+        await fs.writeFile(MEMORY_FILE_PATH, JSON.stringify(emptyMemory, null, 2), 'utf-8');
+        return emptyMemory;
+      }
 
-    const validation = validateMemoryBank(parsedData);
-    if (!validation.valid) {
-      throw new Error(`Memory file data is invalid: ${validation.error}`);
-    }
+      let parsedData: unknown;
+      try {
+        parsedData = JSON.parse(fileContent);
+      } catch (parseError) {
+        throw new Error(`Memory file contains invalid JSON: ${parseError instanceof Error ? parseError.message : 'Parse failed'}`);
+      }
 
-    return validation.data!;
-  } catch (error) {
-    console.error('Error reading memory bank:', error);
-    throw error;
-  }
+      const validation = validateMemoryBank(parsedData);
+      if (!validation.valid) {
+        throw new Error(`Memory file data is invalid: ${validation.error}`);
+      }
+
+      return validation.data!;
+    } catch (error) {
+      console.error('Error reading memory bank:', error);
+      throw error;
+    }
+  });
 }
 
-export async function writeMemoryBank(memoryBank: MemoryBank): Promise<void> {
-  try {
-    const validation = validateMemoryBank(memoryBank);
-    if (!validation.valid) {
-      throw new Error(`Cannot write invalid memory bank: ${validation.error}`);
-    }
+export async function writeMemoryBank(memoryBank: MemoryBankType): Promise<void> {
+  return withFileLock(async () => {
+    try {
+      const validation = validateMemoryBank(memoryBank);
+      if (!validation.valid) {
+        throw new Error(`Cannot write invalid memory bank: ${validation.error}`);
+      }
 
-    await ensureMemoryFile();
-    await fs.writeFile(MEMORY_FILE_PATH, JSON.stringify(memoryBank, null, 2), 'utf-8');
-  } catch (error) {
-    console.error('Error writing memory bank:', error);
-    throw new Error(`Failed to write memory bank: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+      await ensureMemoryFile();
+      await fs.writeFile(MEMORY_FILE_PATH, JSON.stringify(memoryBank, null, 2), 'utf-8');
+    } catch (error) {
+      console.error('Error writing memory bank:', error);
+      throw new Error(`Failed to write memory bank: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  });
 }
 
-export function getPlayer(memoryBank: MemoryBank, name: string): Player | undefined {
+export function getPlayer(memoryBank: MemoryBankType, name: string): PlayerType | undefined {
   return memoryBank.players.find(player => player.name.toLowerCase() === name.toLowerCase());
 }
 
-export function getAvailablePlayerNames(memoryBank: MemoryBank): string[] {
+export function getAvailablePlayerNames(memoryBank: MemoryBankType): string[] {
   return memoryBank.players.map(player => player.name);
+}
+
+export async function withTransaction<T = unknown>(
+  callback: (memoryBank: MemoryBankType) => Promise<{ memoryBank: MemoryBankType; result: T }>
+): Promise<T> {
+  return withFileLock(async () => {
+    try {
+      await ensureMemoryFile();
+      const fileContent = await fs.readFile(MEMORY_FILE_PATH, 'utf-8');
+      
+      let memoryBank: MemoryBankType;
+      if (!fileContent || fileContent.trim() === '') {
+        memoryBank = { players: [] };
+      } else {
+        let parsedData: unknown;
+        try {
+          parsedData = JSON.parse(fileContent);
+        } catch (parseError) {
+          throw new Error(`Memory file contains invalid JSON: ${parseError instanceof Error ? parseError.message : 'Parse failed'}`);
+        }
+
+        const validation = validateMemoryBank(parsedData);
+        if (!validation.valid) {
+          throw new Error(`Memory file data is invalid: ${validation.error}`);
+        }
+        memoryBank = validation.data!;
+      }
+
+      const { memoryBank: updatedMemoryBank, result } = await callback(memoryBank);
+
+      const validation = validateMemoryBank(updatedMemoryBank);
+      if (!validation.valid) {
+        throw new Error(`Cannot write invalid memory bank: ${validation.error}`);
+      }
+
+      await fs.writeFile(MEMORY_FILE_PATH, JSON.stringify(updatedMemoryBank, null, 2), 'utf-8');
+      
+      return result;
+    } catch (error) {
+      console.error('Error in transaction:', error);
+      throw error;
+    }
+  });
 }
 

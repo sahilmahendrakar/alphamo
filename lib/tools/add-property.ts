@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { readMemoryBank, writeMemoryBank, getPlayer, getAvailablePlayerNames } from '@/lib/memory/utils';
+import { withTransaction, getPlayer, getAvailablePlayerNames } from '@/lib/memory/utils';
 
 export const addProperty = tool({
   description: 'Add a property to a player in the Monopoly game',
@@ -48,45 +48,52 @@ export const addProperty = tool({
         };
       }
 
-      const memoryBank = await readMemoryBank();
-      
-      const player = getPlayer(memoryBank, playerName);
-      if (!player) {
-        const availablePlayers = getAvailablePlayerNames(memoryBank);
-        const playerList = availablePlayers.length > 0 
-          ? `Available players: ${availablePlayers.join(', ')}.` 
-          : 'No players exist yet. Add a player first using the addPlayer tool.';
-        return {
-          success: false,
-          message: `Player "${playerName}" does not exist. ${playerList}`,
-        };
-      }
+      return await withTransaction(async (memoryBank) => {
+        const player = getPlayer(memoryBank, playerName);
+        if (!player) {
+          const availablePlayers = getAvailablePlayerNames(memoryBank);
+          const playerList = availablePlayers.length > 0 
+            ? `Available players: ${availablePlayers.join(', ')}.` 
+            : 'No players exist yet. Add a player first using the addPlayer tool.';
+          return {
+            memoryBank,
+            result: {
+              success: false,
+              message: `Player "${playerName}" does not exist. ${playerList}`,
+            },
+          };
+        }
 
-      const existingProperty = player.properties.find(
-        p => p.name.toLowerCase() === propertyName.toLowerCase()
-      );
-      
-      if (existingProperty) {
-        return {
-          success: false,
-          message: `Player "${player.name}" already owns "${propertyName}". Use a different property name or remove it first.`,
-        };
-      }
+        const existingProperty = player.properties.find(
+          p => p.name.toLowerCase() === propertyName.toLowerCase()
+        );
+        
+        if (existingProperty) {
+          return {
+            memoryBank,
+            result: {
+              success: false,
+              message: `Player "${player.name}" already owns "${propertyName}". Use a different property name or remove it first.`,
+            },
+          };
+        }
 
-      player.properties.push({
-        name: propertyName.trim(),
-        colorGroup: colorGroup.trim(),
-        houses,
-        hotels,
+        player.properties.push({
+          name: propertyName.trim(),
+          colorGroup: colorGroup.trim(),
+          houses,
+          hotels,
+        });
+
+        return {
+          memoryBank,
+          result: {
+            success: true,
+            message: `Property "${propertyName.trim()}" (${colorGroup.trim()}) added to ${player.name}${houses > 0 ? ` with ${houses} house(s)` : ''}${hotels > 0 ? ` and ${hotels} hotel(s)` : ''}.`,
+            property: { name: propertyName.trim(), colorGroup: colorGroup.trim(), houses, hotels },
+          },
+        };
       });
-
-      await writeMemoryBank(memoryBank);
-
-      return {
-        success: true,
-        message: `Property "${propertyName.trim()}" (${colorGroup.trim()}) added to ${player.name}${houses > 0 ? ` with ${houses} house(s)` : ''}${hotels > 0 ? ` and ${hotels} hotel(s)` : ''}.`,
-        property: { name: propertyName.trim(), colorGroup: colorGroup.trim(), houses, hotels },
-      };
     } catch (error) {
       return {
         success: false,
