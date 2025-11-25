@@ -14,10 +14,7 @@ export type DiarizedTranscription = {
   raw: unknown;
 };
 
-export function formatDiarizedText(
-  segments?: DiarizedSegment[],
-  fallbackText?: string
-) {
+export function formatDiarizedText(segments?: DiarizedSegment[], fallbackText?: string) {
   if (!segments || segments.length === 0) return fallbackText ?? '';
 
   return segments
@@ -46,10 +43,20 @@ export async function transcribeDiarized(
       options.knownSpeakerNames.length,
       options.knownSpeakerReferences.length
     );
+    console.info('[Transcription] Attaching known speakers', {
+      names: options.knownSpeakerNames.length,
+      references: options.knownSpeakerReferences.length,
+      used: length,
+    });
     for (let i = 0; i < length; i++) {
       formData.append('known_speaker_names', options.knownSpeakerNames[i]);
       formData.append('known_speaker_references', options.knownSpeakerReferences[i]);
     }
+  } else {
+    console.warn('[Transcription] Known speakers missing or incomplete', {
+      names: options?.knownSpeakerNames?.length ?? 0,
+      references: options?.knownSpeakerReferences?.length ?? 0,
+    });
   }
 
   console.info('[Transcription] Uploading audio', {
@@ -61,6 +68,11 @@ export async function transcribeDiarized(
   const response = await fetch('/api/transcribe', {
     method: 'POST',
     body: formData,
+  });
+
+  console.info('[Transcription] Response received', {
+    status: response.status,
+    ok: response.ok,
   });
 
   if (!response.ok) {

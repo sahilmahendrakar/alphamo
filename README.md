@@ -1,5 +1,34 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Prerequisites
+
+This project requires both Node.js and Python 3 to be installed:
+
+- **Node.js** 20+ (for Next.js)
+- **Python 3.11+** (for OpenAI audio transcription with speaker diarization)
+
+Install the required Python dependencies:
+
+```bash
+pip3 install openai
+```
+
+Or if using a virtual environment:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install openai
+```
+
+## Environment Variables
+
+Create a `.env.local` file with:
+
+```bash
+OPENAI_API_KEY=your_api_key_here
+```
+
 ## Getting Started
 
 First, run the development server:

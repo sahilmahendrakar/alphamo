@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { blobToWav } from '@/lib/audio/wav';
 import { transcribeDiarized } from '@/lib/audio/transcribe-client';
 import { getDefaultKnownSpeakers } from '@/lib/audio/known-speakers';
@@ -238,7 +239,10 @@ export default function CameraPage() {
             onClick={captureAndFlush}
             disabled={!isSessionActive || isTranscribing}
           >
-            {isTranscribing ? 'Transcribing…' : 'Capture (spacebar)'}
+            <span className="inline-flex items-center gap-2">
+              {isTranscribing && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isTranscribing ? 'Transcribing…' : 'Capture (spacebar)'}
+            </span>
           </button>
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             <input
@@ -267,23 +271,39 @@ export default function CameraPage() {
             {/* Live Feed */}
             <div className="flex flex-col gap-2">
                 <h2 className="font-medium text-sm">Live Feed</h2>
-                <div className="aspect-video overflow-hidden rounded border bg-black/5 relative">
-                    <video ref={videoRef} className="size-full object-contain" playsInline />
-
-                    {/* Live Transcript Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-sm min-h-[3rem]">
-                        <div className="flex justify-between text-xs text-gray-300 mb-1">
-                            <span>Diarized Transcript</span>
-                            <span>{new Date().toLocaleTimeString()}</span>
+                <div className="aspect-video overflow-hidden rounded border bg-black/5 relative flex items-center justify-center">
+                    {isSessionActive ? (
+                      <>
+                        <video ref={videoRef} className="size-full object-contain" playsInline />
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-sm min-h-[3rem]">
+                            <div className="flex justify-between text-xs text-gray-300 mb-1">
+                                <span>Diarized Transcript</span>
+                                <span>{new Date().toLocaleTimeString()}</span>
+                            </div>
+                            <div className="space-y-1">
+                              {isTranscribing ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Transcribing...
+                                </span>
+                              ) : isRecording ? (
+                                'Recording audio...'
+                              ) : transcript ? (
+                                transcript.split('\n').map((line, idx) => (
+                                  <div key={idx}>{line}</div>
+                                ))
+                              ) : (
+                                'No transcript yet'
+                              )}
+                            </div>
                         </div>
-                        <p>
-                          {isTranscribing
-                            ? 'Transcribing...'
-                            : isRecording
-                              ? 'Recording audio...'
-                              : transcript || 'No transcript yet'}
-                        </p>
-                    </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-500 gap-2">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span className="text-sm">Press Start Session to enable camera & transcript</span>
+                      </div>
+                    )}
                 </div>
             </div>
 
@@ -298,11 +318,17 @@ export default function CameraPage() {
                             <img src={lastCaptured.image} alt="Captured frame" className="size-full object-contain" />
                         </div>
                         <div className="bg-white border-t p-3 text-sm h-1/3 overflow-y-auto">
-                             <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                            <div className="flex justify-between text-xs text-muted-foreground mb-1">
                                 <span>Captured Transcript</span>
                                 <span>{new Date(lastCaptured.timestamp).toLocaleTimeString()}</span>
                             </div>
-                            <p>{lastCaptured.transcript || "(No speech detected)"}</p>
+                            <div className="space-y-1">
+                              {lastCaptured.transcript
+                                ? lastCaptured.transcript.split('\n').map((line, idx) => (
+                                    <div key={idx}>{line}</div>
+                                  ))
+                                : "(No speech detected)"}
+                            </div>
                         </div>
                     </>
                     ) : (

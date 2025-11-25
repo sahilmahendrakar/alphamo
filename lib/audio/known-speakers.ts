@@ -4,12 +4,10 @@ export type KnownSpeakers = {
 };
 
 const defaultSpeakerRefs = [
-  { name: 'vish', path: '/vish.wav' },
-  { name: 'sahil', path: '/sahil.wav' },
   { name: 'ben', path: '/ben.wav' },
+  { name: 'sahil', path: '/sahil.wav' },
+  { name: 'vish', path: '/vish.wav' },
 ];
-
-let cachedKnownSpeakers: KnownSpeakers | null | undefined;
 
 async function blobToDataUrl(blob: Blob) {
   const arrayBuffer = await blob.arrayBuffer();
@@ -28,7 +26,6 @@ async function blobToDataUrl(blob: Blob) {
  */
 export async function getDefaultKnownSpeakers(): Promise<KnownSpeakers | null> {
   if (typeof window === 'undefined') return null;
-  if (cachedKnownSpeakers !== undefined) return cachedKnownSpeakers;
 
   const names: string[] = [];
   const references: string[] = [];
@@ -46,6 +43,14 @@ export async function getDefaultKnownSpeakers(): Promise<KnownSpeakers | null> {
     }
   }
 
-  cachedKnownSpeakers = names.length ? { names, references } : null;
-  return cachedKnownSpeakers;
+  if (names.length) {
+    console.info('[KnownSpeakers] Loaded references', {
+      count: names.length,
+      names,
+    });
+  } else {
+    console.warn('[KnownSpeakers] No speaker references could be loaded from public/');
+  }
+
+  return names.length ? { names, references } : null;
 }
