@@ -38,6 +38,7 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
   const [saveWavCopy, setSaveWavCopy] = useState(false);
   const [lastWavUrl, setLastWavUrl] = useState<string | null>(null);
   const [audioError, setAudioError] = useState<string | null>(null);
+  const [lastTranscript, setLastTranscript] = useState<string>('');
 
   useEffect(() => {
     if (micError) {
@@ -69,6 +70,7 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
     try {
       setSessionState('listening');
       setAudioError(null);
+      setLastTranscript('');
       cancelRecording();
       if (lastWavUrl) {
         URL.revokeObjectURL(lastWavUrl);
@@ -136,6 +138,8 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
 
       const currentTranscript =
         result.diarizedText || result.text || '(No speech detected)';
+
+      setLastTranscript(currentTranscript);
 
       const item: CapturedItem = {
         image: photoUrl,
@@ -241,9 +245,22 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
                 {/* Live Monitor - Listening State */}
                 <div className="h-48 bg-black rounded-xl overflow-hidden relative shadow-sm ring-1 ring-black/5 shrink-0">
                     <video ref={videoRef} className="size-full object-cover" playsInline muted />
+                    <div className="absolute top-3 right-3 flex items-center gap-2 bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-medium">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        Recording
+                    </div>
                 </div>
 
-                <div className="flex-1" />
+                {lastTranscript && (
+                  <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col min-h-0">
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2 tracking-wider">Previous Turn</h4>
+                    <div className="flex-1 overflow-y-auto text-sm leading-relaxed text-gray-700 whitespace-pre-wrap">
+                      {lastTranscript}
+                    </div>
+                  </div>
+                )}
+
+                {!lastTranscript && <div className="flex-1" />}
 
                 {/* Play Turn Button */}
                 <div className="shrink-0">
