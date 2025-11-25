@@ -3,16 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { GameStateDisplay } from '@/components/game-state-display';
-import { DealInterface } from '@/components/deal-interface';
 import { TurnSidebar, CapturedItem } from '@/components/turn-sidebar';
 import { AlphamoChatPanel } from '@/components/alphamo-chat-panel';
 import { MemoryBank } from '@/lib/memory/types';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 import { FileUIPart } from 'ai';
+import type { PromptInputMessage } from '@/components/ai-elements/prompt-input';
 
 export default function Home() {
-  const [isDealInterfaceOpen, setIsDealInterfaceOpen] = useState(false);
   const [gameState, setGameState] = useState<MemoryBank | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,9 +60,20 @@ export default function Home() {
       files.push(file);
     }
     
+    const turnContext = item.transcript 
+      ? `It's your turn now. Here's what happened: ${item.transcript}`
+      : 'It\'s your turn now. Here\'s the current board state.';
+    
     sendMessage({
-      text: item.transcript || 'Captured board state',
+      text: turnContext,
       files,
+    });
+  };
+
+  const handleSendMessage = (message: PromptInputMessage) => {
+    sendMessage({
+      text: message.text,
+      files: message.files,
     });
   };
 
@@ -102,10 +110,7 @@ export default function Home() {
                   <div className="text-red-500 text-lg">Error: {error}</div>
                 </div>
              ) : gameState ? (
-                <GameStateDisplay
-                  gameState={gameState}
-                  onOfferDeal={() => setIsDealInterfaceOpen(true)}
-                />
+                <GameStateDisplay gameState={gameState} />
              ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-gray-500 text-lg">No game data available</div>
@@ -115,30 +120,18 @@ export default function Home() {
 
           {/* Middle: Alphamo Chat Panel (Fixed width) */}
           <div className="w-[350px] shrink-0 border-l border-gray-200 bg-white z-10">
-             <AlphamoChatPanel messages={messages} isLoading={status === 'submitted' || status === 'streaming'} />
+             <AlphamoChatPanel 
+               messages={messages} 
+               isLoading={status === 'submitted' || status === 'streaming'} 
+               onSendMessage={handleSendMessage}
+               status={status}
+             />
           </div>
 
           {/* Right: Turn Sidebar (Fixed width) */}
           <div className="w-[350px] shrink-0 border-l border-gray-200 bg-white z-10">
-             <TurnSidebar onCapture={handleCapture} isDealInterfaceOpen={isDealInterfaceOpen} />
+             <TurnSidebar onCapture={handleCapture} />
           </div>
-      </div>
-
-      {/* Deal Interface Slide-over */}
-      <div
-        className={`fixed inset-y-0 right-0 w-[450px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 border-l border-gray-200 flex flex-col ${
-            isDealInterfaceOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white shrink-0">
-            <h2 className="font-semibold text-xl text-gray-900">Propose Deal</h2>
-            <Button variant="ghost" size="icon" onClick={() => setIsDealInterfaceOpen(false)}>
-                <X className="h-5 w-5" />
-            </Button>
-        </div>
-        <div className="flex-1 min-h-0 overflow-hidden">
-            <DealInterface />
-        </div>
       </div>
     </div>
   );

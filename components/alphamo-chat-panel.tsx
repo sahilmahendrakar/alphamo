@@ -1,6 +1,6 @@
 'use client';
 
-import { UIMessage, type ToolUIPart } from 'ai';
+import { UIMessage, type ToolUIPart, type ChatStatus } from 'ai';
 import {
   Conversation,
   ConversationContent,
@@ -10,6 +10,12 @@ import { Message, MessageContent, MessageResponse } from '@/components/ai-elemen
 import {
   ToolCompact,
 } from '@/components/ai-elements/tool';
+import {
+  PromptInput,
+  PromptInputTextarea,
+  PromptInputSubmit,
+  type PromptInputMessage,
+} from '@/components/ai-elements/prompt-input';
 
 type SumToolInput = {
   a: number;
@@ -142,9 +148,11 @@ const getToolActionText = (toolType: string, input: any): string => {
 interface AlphamoChatPanelProps {
   messages: UIMessage[];
   isLoading?: boolean;
+  onSendMessage: (message: PromptInputMessage) => void;
+  status?: ChatStatus;
 }
 
-export function AlphamoChatPanel({ messages, isLoading }: AlphamoChatPanelProps) {
+export function AlphamoChatPanel({ messages, isLoading, onSendMessage, status }: AlphamoChatPanelProps) {
   const renderToolPart = (part: any, messageId: string, index: number) => {
     const toolPart = part as MonopolyToolUIPart;
     
@@ -161,11 +169,17 @@ export function AlphamoChatPanel({ messages, isLoading }: AlphamoChatPanelProps)
     return null;
   };
 
+  const handleSubmit = (message: PromptInputMessage) => {
+    if (message.text.trim()) {
+      onSendMessage(message);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">
       <div className="p-4 border-b border-gray-200 shrink-0">
         <h2 className="font-semibold text-lg text-gray-900">Alphamo Assistant</h2>
-        <p className="text-xs text-gray-500 mt-1">AI-powered Monopoly insights</p>
+        <p className="text-xs text-gray-500 mt-1">Chat for deals or play turn</p>
       </div>
 
       <Conversation className="flex-1 overflow-hidden">
@@ -175,7 +189,7 @@ export function AlphamoChatPanel({ messages, isLoading }: AlphamoChatPanelProps)
               <div className="space-y-2">
                 <div className="text-gray-400 text-sm">No messages yet</div>
                 <p className="text-gray-500 text-xs">
-                  Start a session and use Play Turn to send transcripts
+                  Chat to negotiate deals or use Play Turn
                 </p>
               </div>
             </div>
@@ -212,6 +226,22 @@ export function AlphamoChatPanel({ messages, isLoading }: AlphamoChatPanelProps)
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
+
+      <div className="p-4 border-t border-gray-200 bg-white shrink-0">
+        <PromptInput
+          onSubmit={handleSubmit}
+          className="w-full relative"
+        >
+          <PromptInputTextarea
+            placeholder="Propose a deal or ask a question..."
+            className="pr-12 min-h-[60px] border border-gray-300 focus:border-gray-400"
+          />
+          <PromptInputSubmit
+            status={status === 'streaming' ? 'streaming' : 'ready'}
+            className="absolute bottom-3 right-3"
+          />
+        </PromptInput>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,5 @@
 import React from 'react';
 import { MemoryBank, Player, Property, TOKEN_EMOJI_MAP } from '@/lib/memory/types';
-import { Button } from '@/components/ui/button';
-import { Handshake } from 'lucide-react';
 import { getBoardSpaceByPosition } from '@/lib/data/board';
 
 const colorMap: Record<string, string> = {
@@ -19,27 +17,21 @@ const colorMap: Record<string, string> = {
 
 interface GameStateDisplayProps {
   gameState: MemoryBank;
-  onOfferDeal: () => void;
 }
 
-export function GameStateDisplay({ gameState, onOfferDeal }: GameStateDisplayProps) {
+export function GameStateDisplay({ gameState }: GameStateDisplayProps) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {gameState.players.map((player) => (
-          <PlayerCard
-              key={player.name}
-              player={player}
-              onOfferDeal={onOfferDeal}
-          />
+          <PlayerCard key={player.name} player={player} />
         ))}
       </div>
     </div>
   );
 }
 
-function PlayerCard({ player, onOfferDeal }: { player: Player; onOfferDeal: () => void }) {
-  const isAlphaMo = player.name === 'AlphaMo';
+function PlayerCard({ player }: { player: Player }) {
   const boardSpace = getBoardSpaceByPosition(player.position);
   const positionName = boardSpace?.name || `Position ${player.position}`;
 
@@ -60,17 +52,6 @@ function PlayerCard({ player, onOfferDeal }: { player: Player; onOfferDeal: () =
               </span>
             )}
           </div>
-
-          {isAlphaMo && (
-            <Button
-              onClick={onOfferDeal}
-              className="bg-black hover:bg-gray-800 text-white h-8 text-xs px-3"
-              size="sm"
-            >
-              <Handshake className="w-3.5 h-3.5 mr-2" />
-              Deal
-            </Button>
-          )}
         </div>
         
         <div className="flex items-center gap-4 ml-9">
