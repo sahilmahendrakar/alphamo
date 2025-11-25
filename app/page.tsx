@@ -1,18 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useChat } from '@ai-sdk/react';
 import { GameStateDisplay } from '@/components/game-state-display';
 import { DealInterface } from '@/components/deal-interface';
-import { TurnSidebar } from '@/components/turn-sidebar';
+import { TurnSidebar, CapturedItem } from '@/components/turn-sidebar';
+import { AlphamoChatPanel } from '@/components/alphamo-chat-panel';
 import { MemoryBank } from '@/lib/memory/types';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { FileUIPart } from 'ai';
 
 export default function Home() {
   const [isDealInterfaceOpen, setIsDealInterfaceOpen] = useState(false);
   const [gameState, setGameState] = useState<MemoryBank | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const { messages, sendMessage, status } = useChat();
 
   const fetchMemoryState = async () => {
     try {
@@ -41,6 +46,29 @@ export default function Home() {
     return () => clearInterval(pollInterval);
   }, []);
 
+  const handleCapture = (item: CapturedItem) => {
+    const files: FileUIPart[] = [];
+    
+    if (item.image) {
+      const mimeMatch = item.image.match(/^data:(.*?);/);
+      const mediaType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      
+      const file: FileUIPart = {
+        type: 'file',
+        url: item.image,
+        mediaType,
+        filename: `board-${item.timestamp}.jpg`,
+      };
+      
+      files.push(file);
+    }
+    
+    sendMessage({
+      text: item.transcript || 'Captured board state',
+      files,
+    });
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans overflow-hidden">
 
@@ -60,7 +88,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. Main Content Area - Split vertically */}
+      {/* 2. Main Content Area - Split into 3 columns */}
       <div className="flex-1 flex overflow-hidden">
 
           {/* Left: Game State (Flexible width) */}
@@ -85,9 +113,14 @@ export default function Home() {
              )}
           </div>
 
+          {/* Middle: Alphamo Chat Panel (Fixed width) */}
+          <div className="w-[350px] shrink-0 border-l border-gray-200 bg-white z-10">
+             <AlphamoChatPanel messages={messages} isLoading={status === 'submitted' || status === 'streaming'} />
+          </div>
+
           {/* Right: Turn Sidebar (Fixed width) */}
           <div className="w-[350px] shrink-0 border-l border-gray-200 bg-white z-10">
-             <TurnSidebar />
+             <TurnSidebar onCapture={handleCapture} isDealInterfaceOpen={isDealInterfaceOpen} />
           </div>
       </div>
 
@@ -97,13 +130,13 @@ export default function Home() {
             isDealInterfaceOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white">
+        <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white shrink-0">
             <h2 className="font-semibold text-xl text-gray-900">Propose Deal</h2>
             <Button variant="ghost" size="icon" onClick={() => setIsDealInterfaceOpen(false)}>
                 <X className="h-5 w-5" />
             </Button>
         </div>
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-hidden">
             <DealInterface />
         </div>
       </div>

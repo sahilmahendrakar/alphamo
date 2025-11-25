@@ -1,7 +1,8 @@
 import React from 'react';
-import { MemoryBank, Player, Property } from '@/lib/memory/types';
+import { MemoryBank, Player, Property, TOKEN_EMOJI_MAP } from '@/lib/memory/types';
 import { Button } from '@/components/ui/button';
 import { Handshake } from 'lucide-react';
+import { getBoardSpaceByPosition } from '@/lib/data/board';
 
 const colorMap: Record<string, string> = {
   Brown: 'bg-[#8B4513]',
@@ -39,27 +40,47 @@ export function GameStateDisplay({ gameState, onOfferDeal }: GameStateDisplayPro
 
 function PlayerCard({ player, onOfferDeal }: { player: Player; onOfferDeal: () => void }) {
   const isAlphaMo = player.name === 'AlphaMo';
+  const boardSpace = getBoardSpaceByPosition(player.position);
+  const positionName = boardSpace?.name || `Position ${player.position}`;
 
   return (
     <div className="flex flex-col bg-white border border-gray-200 h-full">
-      <div className="p-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-        <div className="flex items-baseline gap-4">
-          <h3 className="font-bold text-2xl text-gray-900 tracking-tight">{player.name}</h3>
+      <div className="p-5 border-b border-gray-200 bg-gray-50">
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center gap-2">
+            {player.token && (
+              <span className="text-2xl" title={player.token}>
+                {TOKEN_EMOJI_MAP[player.token]}
+              </span>
+            )}
+            <h3 className="font-bold text-2xl text-gray-900 tracking-tight">{player.name}</h3>
+            {player.inJail && (
+              <span className="text-xl" title="In Jail">
+                ⛓️
+              </span>
+            )}
+          </div>
+
+          {isAlphaMo && (
+            <Button
+              onClick={onOfferDeal}
+              className="bg-black hover:bg-gray-800 text-white h-8 text-xs px-3"
+              size="sm"
+            >
+              <Handshake className="w-3.5 h-3.5 mr-2" />
+              Deal
+            </Button>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-4 ml-9">
           <span className="font-mono font-semibold text-xl text-gray-600">
             ${player.money.toLocaleString()}
           </span>
+          <span className="text-sm text-gray-500">
+            📍 {positionName}
+          </span>
         </div>
-
-        {isAlphaMo && (
-            <Button
-                onClick={onOfferDeal}
-                className="bg-black hover:bg-gray-800 text-white h-8 text-xs px-3"
-                size="sm"
-            >
-                <Handshake className="w-3.5 h-3.5 mr-2" />
-                Deal
-            </Button>
-        )}
       </div>
 
       <div className="p-6 bg-gray-50/50 flex-1 min-h-[200px]">

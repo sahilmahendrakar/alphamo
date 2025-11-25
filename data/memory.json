@@ -1,4 +1,44 @@
 {
   "players": [
+    {
+      "name": "AlphaMo",
+      "properties": [
+        {
+          "name": "Pennsylvania Railroad",
+          "colorGroup": "Railroad",
+          "houses": 0,
+          "hotels": 0,
+          "isMortgaged": false
+        }
+      ],
+      "money": 1300,
+      "token": "Race Car",
+      "inJail": false,
+      "position": 15
+    },
+    {
+      "name": "Ben",
+      "properties": [],
+      "money": 1500,
+      "token": "Dog",
+      "inJail": false,
+      "position": 0
+    },
+    {
+      "name": "Vish",
+      "properties": [],
+      "money": 1500,
+      "token": "Thimble",
+      "inJail": false,
+      "position": 0
+    },
+    {
+      "name": "Sahel",
+      "properties": [],
+      "money": 1500,
+      "token": "Top Hat",
+      "inJail": false,
+      "position": 0
+    }
   ]
 }

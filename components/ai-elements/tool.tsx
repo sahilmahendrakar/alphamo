@@ -110,7 +110,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
       <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
         Parameters
       </h4>
-      <div className="rounded-md bg-muted/50">
+      <div className="rounded-md bg-muted/50 overflow-x-auto max-w-full">
         <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
       </div>
     </div>
@@ -149,15 +149,68 @@ export const ToolOutput = ({
       </h4>
       <div
         className={cn(
-          "overflow-x-auto rounded-md text-xs [&_table]:w-full",
+          "overflow-x-auto rounded-md text-xs max-w-full [&_table]:w-full",
           errorText
             ? "bg-destructive/10 text-destructive"
             : "bg-muted/50 text-foreground"
         )}
       >
-        {errorText && <div>{errorText}</div>}
+        {errorText && <div className="break-words">{errorText}</div>}
         {Output}
       </div>
     </div>
   );
+};
+
+export type ToolCompactProps = ComponentProps<"div"> & {
+  tool: ToolUIPart;
+  actionText?: string;
+};
+
+export const ToolCompact = ({
+  className,
+  tool,
+  actionText,
+  ...props
+}: ToolCompactProps) => {
+  const isPending = tool.state === "input-streaming" || tool.state === "input-available";
+  const isError = tool.state === "output-error";
+  const isComplete = tool.state === "output-available";
+
+  if (isPending && actionText) {
+    return (
+      <div className={cn("text-sm text-foreground break-words", className)} {...props}>
+        {actionText}
+      </div>
+    );
+  }
+
+  if (isError && tool.errorText) {
+    return (
+      <div className={cn("text-sm text-destructive break-words", className)} {...props}>
+        {tool.errorText}
+      </div>
+    );
+  }
+
+  if (isComplete && tool.output) {
+    let message = "";
+    
+    if (typeof tool.output === "object" && !isValidElement(tool.output)) {
+      const outputObj = tool.output as any;
+      message = outputObj.message || JSON.stringify(tool.output);
+    } else if (typeof tool.output === "string") {
+      message = tool.output;
+    } else {
+      message = String(tool.output);
+    }
+
+    return (
+      <div className={cn("text-sm text-muted-foreground break-words", className)} {...props}>
+        {message}
+      </div>
+    );
+  }
+
+  return null;
 };
