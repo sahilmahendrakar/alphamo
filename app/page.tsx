@@ -43,7 +43,7 @@ export default function Home() {
     return () => clearInterval(pollInterval);
   }, []);
 
-  const handleCapture = (item: CapturedItem) => {
+  const handleCapture = async (item: CapturedItem) => {
     const files: FileUIPart[] = [];
     
     if (item.image) {
@@ -60,9 +60,32 @@ export default function Home() {
       files.push(file);
     }
     
-    const turnContext = item.transcript 
-      ? `It's your turn now. Here's what happened: ${item.transcript}`
-      : 'It\'s your turn now. Here\'s the current board state.';
+    let turnContext: string;
+    
+    if (item.transcript) {
+      try {
+        const summarizeResponse = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ transcript: item.transcript }),
+        });
+        
+        if (summarizeResponse.ok) {
+          const { summary } = await summarizeResponse.json();
+          turnContext = `It's your turn now. Here's what happened: ${summary}`;
+        } else {
+          console.warn('Summarization failed, using original transcript');
+          turnContext = `It's your turn now. Here's what happened: ${item.transcript}`;
+        }
+      } catch (error) {
+        console.error('Error calling summarize API:', error);
+        turnContext = `It's your turn now. Here's what happened: ${item.transcript}`;
+      }
+    } else {
+      turnContext = 'It\'s your turn now. Here\'s the current board state.';
+    }
     
     sendMessage({
       text: turnContext,
