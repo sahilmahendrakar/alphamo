@@ -50,21 +50,29 @@ export function TurnSidebar({ onCapture }: TurnSidebarProps) {
     const loadDevices = async () => {
       try {
         const mediaDevices = await navigator.mediaDevices.enumerateDevices();
-        setDevices(
-          mediaDevices
-            .filter((device) => device.kind === 'videoinput')
-            .map((device) => ({
-              deviceId: device.deviceId,
-              label: device.label || 'Camera',
-            }))
+        const videoDevices = mediaDevices
+          .filter((device) => device.kind === 'videoinput')
+          .map((device) => ({
+            deviceId: device.deviceId,
+            label: device.label || 'Camera',
+          }));
+
+        setDevices(videoDevices);
+
+        const benjaminsIPhone = videoDevices.find((device) =>
+          device.label.toLowerCase().includes("benjamin's iphone")
         );
+
+        if (benjaminsIPhone && !selectedDeviceId) {
+          setSelectedDeviceId(benjaminsIPhone.deviceId);
+        }
       } catch (error) {
         console.error('Failed to enumerate devices', error);
       }
     };
 
     loadDevices();
-  }, []);
+  }, [selectedDeviceId]);
 
   const startSession = useCallback(async () => {
     try {

@@ -52,25 +52,43 @@ export default function CameraPage() {
     }
   }, [micError]);
 
+  const loadDevices = useCallback(async () => {
+    try {
+      const mediaDevices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = mediaDevices
+        .filter((device) => device.kind === 'videoinput')
+        .map((device) => ({
+          deviceId: device.deviceId,
+          label: device.label || 'Camera',
+        }));
+
+      setDevices(videoDevices);
+
+      const benjaminsIPhone = videoDevices.find((device) =>
+        device.label.toLowerCase().includes("benjamin's iphone")
+      );
+
+      if (benjaminsIPhone && !selectedDeviceId) {
+        setSelectedDeviceId(benjaminsIPhone.deviceId);
+      }
+    } catch (error) {
+      console.error('Failed to enumerate devices', error);
+    }
+  }, [selectedDeviceId]);
+
   useEffect(() => {
-    const loadDevices = async () => {
+    const initDevices = async () => {
       try {
-        const mediaDevices = await navigator.mediaDevices.enumerateDevices();
-        setDevices(
-          mediaDevices
-            .filter((device) => device.kind === 'videoinput')
-            .map((device) => ({
-              deviceId: device.deviceId,
-              label: device.label || 'Camera',
-            }))
-        );
+        const permissionStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        permissionStream.getTracks().forEach((track) => track.stop());
+        await loadDevices();
       } catch (error) {
-        console.error('Failed to enumerate devices', error);
+        console.error('Camera permission denied or not available', error);
+        await loadDevices();
       }
     };
-
-    loadDevices();
-  }, []);
+    initDevices();
+  }, [loadDevices]);
 
   const startSession = useCallback(async () => {
     try {
@@ -97,6 +115,8 @@ export default function CameraPage() {
         await videoRef.current.play();
       }
 
+      await loadDevices();
+
       setTranscript('');
       await startRecording();
     } catch (error) {
@@ -104,7 +124,7 @@ export default function CameraPage() {
       setIsSessionActive(false);
       setAudioError('Unable to start camera or microphone.');
     }
-  }, [selectedDeviceId, stream, startRecording, cancelRecording, lastWavUrl]);
+  }, [selectedDeviceId, stream, startRecording, cancelRecording, lastWavUrl, loadDevices]);
 
   const captureAndFlush = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current || isTranscribing) return;
@@ -274,7 +294,7 @@ export default function CameraPage() {
                 <div className="aspect-video overflow-hidden rounded border bg-black/5 relative flex items-center justify-center">
                     {isSessionActive ? (
                       <>
-                        <video ref={videoRef} className="size-full object-contain" playsInline />
+                        <video ref={videoRef} className="size-full object-contain" autoPlay muted playsInline />
                         <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-2 text-sm min-h-[3rem]">
                             <div className="flex justify-between text-xs text-gray-300 mb-1">
                                 <span>Diarized Transcript</span>

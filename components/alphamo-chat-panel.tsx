@@ -16,6 +16,8 @@ import {
   PromptInputSubmit,
   type PromptInputMessage,
 } from '@/components/ai-elements/prompt-input';
+import { useTextToSpeech } from '@/lib/hooks/useTextToSpeech';
+import { useEffect, useRef } from 'react';
 
 type SumToolInput = {
   a: number;
@@ -126,7 +128,7 @@ type MonopolyToolUIPart = ToolUIPart<{
 
 const getToolActionText = (toolType: string, input: any): string => {
   const toolName = toolType.replace('tool-call-', '').replace('tool-result-', '');
-  
+
   switch (toolName) {
     case 'addPlayer':
       return `Adding player ${input?.name || ''}...`;
@@ -153,9 +155,34 @@ interface AlphamoChatPanelProps {
 }
 
 export function AlphamoChatPanel({ messages, isLoading, onSendMessage, status }: AlphamoChatPanelProps) {
+  const { speak } = useTextToSpeech();
+  const lastMessageIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (messages.length === 0) return;
+
+    const lastMessage = messages[messages.length - 1];
+
+    if (
+      lastMessage.role === 'assistant' &&
+      lastMessage.id !== lastMessageIdRef.current
+    ) {
+      lastMessageIdRef.current = lastMessage.id;
+
+      const textParts = lastMessage.parts
+        .filter((part: any) => part.type === 'text')
+        .map((part: any) => part.text)
+        .join(' ');
+
+      if (textParts) {
+        speak(textParts);
+      }
+    }
+  }, [messages, speak]);
+
   const renderToolPart = (part: any, messageId: string, index: number) => {
     const toolPart = part as MonopolyToolUIPart;
-    
+
     if (part.type.startsWith('tool-')) {
       const actionText = getToolActionText(toolPart.type, toolPart.input);
       return (
